@@ -1,0 +1,4 @@
+interface:
+  display_name: "IG 貼文整理到筆記盒"
+  short_description: "讀取整篇 IG 輪播，逐項整理提示詞與來源，存入 Obsidian 筆記盒"
+  default_prompt: "使用 $ig-post-to-notes 整理這篇 IG 的全部圖文與提示詞，並存入筆記盒。"
