@@ -1,0 +1,4 @@
+interface:
+  display_name: "🎬 YT 影片整理到筆記盒"
+  short_description: "整理 YouTube 影片重點與時間連結，保留查核範圍並更新筆記盒索引"
+  default_prompt: "使用 $yt-video-to-notes 整理這支 YouTube 影片，存入筆記盒並更新 YT 總覽與主題分類。"

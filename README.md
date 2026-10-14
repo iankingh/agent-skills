@@ -10,12 +10,13 @@ A collection of AI agent skills I use, build, and discover.
 | --- | --- | --- |
 | [git-commit-content](skills/git-commit-content/SKILL.md) | 根據實際 Git 變更，產生、修改或檢查符合 Conventional Commits 的繁體中文提交訊息 | 自製 |
 | [ig-post-to-notes](skills/ig-post-to-notes/SKILL.md) | 整理 Instagram 單篇貼文與完整輪播，保留來源與提示詞；依要求存入 Obsidian | 自製，共用版本 |
+| [yt-video-to-notes](skills/yt-video-to-notes/SKILL.md) | 將 YouTube 影片整理成繁體中文重點筆記，保留章節時間與查核範圍；依要求存入 Obsidian 並更新既有索引 | 自製，共用版本 |
 
 ## 使用方式
 
 ### 安裝至 Codex
 
-將想使用的**完整技能資料夾**複製到 Codex 的 skills 目錄，保留 `SKILL.md` 與 `agents/openai.yaml`。以下指令在此 repo 根目錄執行，預設安裝至 `~/.codex/skills`；若有設定 `CODEX_HOME`，則使用該位置下的 `skills`。
+將想使用的**完整技能資料夾**複製到 Codex 的 skills 目錄，保留 `SKILL.md`、`agents/openai.yaml` 與技能包含的 `references/` 等支援檔案。以下指令在此 repo 根目錄執行，預設安裝至 `~/.codex/skills`；若有設定 `CODEX_HOME`，則使用該位置下的 `skills`。
 
 先檢查目的地。同名技能若已存在，請先將原資料夾移到 skills 目錄之外的備份位置，再安裝，避免合併或覆寫現有設定。
 
@@ -31,7 +32,7 @@ else
 fi
 ```
 
-安裝 IG 技能時，將 `skill_name` 改為 `ig-post-to-notes`。本 repo 的 IG 版本不預設個人筆記庫路徑；使用時指定目的地，分類與索引沿用該筆記庫的慣例。
+安裝 IG 或 YT 技能時，將 `skill_name` 改為 `ig-post-to-notes` 或 `yt-video-to-notes`。本 repo 的 IG 與 YT 版本不預設個人筆記庫路徑；使用時指定目的地，分類與索引沿用該筆記庫的慣例。
 
 ### 呼叫範例
 
@@ -59,6 +60,23 @@ fi
 ```
 
 未提供或未確認筆記庫位置時，skill 會先詢問；僅要求整理貼文時不自行寫入 Obsidian。
+
+整理 YouTube 影片，在對話中取得筆記：
+
+```text
+使用 $yt-video-to-notes 整理這支 YouTube 影片的重點與章節時間，註明實際讀取範圍，直接在對話中提供筆記。
+影片連結：〈貼上 YouTube 影片網址〉
+```
+
+整理並存入自己的 Obsidian 筆記庫：
+
+```text
+使用 $yt-video-to-notes 整理這支 YouTube 影片，存入我指定的 Obsidian 筆記庫，沿用現有格式，並更新既有 YT 總覽與適合的主題索引。
+影片連結：〈貼上 YouTube 影片網址〉
+筆記庫路徑：〈填入自己的筆記庫路徑〉
+```
+
+YT 技能僅在要求寫入時存入筆記庫；索引與備份位置依既有慣例或使用者指定。播放清單參數不會自動擴大成整個清單，取得內容不完整時會說明缺漏，不保證每支影片都能取得字幕。
 
 ## 收錄慣例
 
