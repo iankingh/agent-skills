@@ -10,7 +10,7 @@ A collection of AI agent skills I use, build, and discover.
 | --- | --- | --- |
 | [git-commit-content](skills/git-commit-content/SKILL.md) | 根據實際 Git 變更，產生、修改或檢查繁體中文提交訊息，區分 Conventional Commits 規格、專案規則與文字偏好 | 自製 |
 | [ig-post-to-notes](skills/ig-post-to-notes/SKILL.md) | 整理 Instagram 單篇貼文與完整輪播，保留來源與提示詞；依要求存入 Obsidian | 自製，共用版本 |
-| [yt-video-to-notes](skills/yt-video-to-notes/SKILL.md) | 將 YouTube 影片整理成繁體中文重點筆記，保留章節時間與查核範圍；依要求存入 Obsidian 並更新既有索引 | 自製，共用版本 |
+| [yt-video-to-notes](skills/yt-video-to-notes/SKILL.md) | 整理 YouTube 影片，或原文匯入已整理文稿並保留完整標題；提供時間戳建置、繁中檢查與課程續作工具 | 自製，共用版本 |
 
 ## 使用方式
 
@@ -76,7 +76,31 @@ fi
 筆記庫路徑：〈填入自己的筆記庫路徑〉
 ```
 
-YT 技能僅在要求寫入時存入筆記庫；索引與備份位置依既有慣例或使用者指定。播放清單參數不會自動擴大成整個清單，取得內容不完整時會說明缺漏，不保證每支影片都能取得字幕。
+原文匯入已整理好的影片筆記：
+
+```text
+使用 $yt-video-to-notes 將這份已整理好的影片文稿原文匯入 Obsidian，保留完整標題與檔案內容，只加上影片前綴，不重新摘要或更新索引。
+來源檔案：〈填入 Markdown 檔案路徑〉
+筆記庫路徑：〈填入自己的筆記庫路徑〉
+```
+
+原文匯入會保留原始檔案內容，依主要來源決定是否加上 `▶️ YT-` 前綴，並比對內容一致性；不新增 metadata、aliases 或回連，不因同影片而合併既有筆記。只有明確要求重整時才套用新筆記模板與建置流程。
+
+YT 技能僅在要求寫入時存入筆記庫；新內容的索引與備份位置依既有慣例或使用者指定。播放清單參數不會自動擴大成整個清單，取得內容不完整時會說明缺漏，不保證每支影片都能取得字幕。
+
+### YT 輔助工具與驗證
+
+- `build.py`：將草稿標記轉成影片時間戳及 Obsidian 連結，以來源與 SHA-256 記錄明確要求的課程章節，檢查缺集與續作狀態。
+- `chk.py`：唯讀檢查新撰寫內容中的疑似簡體與台灣用語，保留原文供人工判讀。
+
+工具需 Python 3.10 以上；`chk.py` 另需 `opencc-python-reimplemented`。安裝方式與指令詳見 [YT 工具說明](skills/yt-video-to-notes/references/tools.md)。這些工具不套用於原文匯入。
+
+在 YT 技能目錄執行既有工具測試；要完整執行 OpenCC 整合測試，須先在使用的虛擬環境安裝該套件：
+
+```sh
+cd skills/yt-video-to-notes
+python3 -B -m unittest discover -s tests -v
+```
 
 ## 收錄慣例
 
