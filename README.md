@@ -8,7 +8,7 @@ A collection of AI agent skills I use, build, and discover.
 
 | Skill | 用途 | 來源 |
 | --- | --- | --- |
-| [git-commit-content](skills/git-commit-content/SKILL.md) | 根據實際 Git 變更，產生、修改或檢查符合 Conventional Commits 的繁體中文提交訊息 | 自製 |
+| [git-commit-content](skills/git-commit-content/SKILL.md) | 根據實際 Git 變更，產生、修改或檢查繁體中文提交訊息，區分 Conventional Commits 規格、專案規則與文字偏好 | 自製 |
 | [ig-post-to-notes](skills/ig-post-to-notes/SKILL.md) | 整理 Instagram 單篇貼文與完整輪播，保留來源與提示詞；依要求存入 Obsidian | 自製，共用版本 |
 | [yt-video-to-notes](skills/yt-video-to-notes/SKILL.md) | 將 YouTube 影片整理成繁體中文重點筆記，保留章節時間與查核範圍；依要求存入 Obsidian 並更新既有索引 | 自製，共用版本 |
 
