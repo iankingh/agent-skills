@@ -95,12 +95,15 @@ YT 技能僅在要求寫入時存入筆記庫；新內容的索引與備份位�
 
 工具需 Python 3.10 以上；`chk.py` 另需 `opencc-python-reimplemented`。安裝方式與指令詳見 [YT 工具說明](skills/yt-video-to-notes/references/tools.md)。這些工具不套用於原文匯入。
 
-在 YT 技能目錄執行既有工具測試；要完整執行 OpenCC 整合測試，須先在使用的虛擬環境安裝該套件：
+確認 `python3 --version` 為 Python 3.10 以上，再從 repo 根目錄建立虛擬環境、安裝固定版本的依賴並執行完整測試：
 
 ```sh
-cd skills/yt-video-to-notes
-python3 -B -m unittest discover -s tests -v
+python3 -m venv .venv
+.venv/bin/python -m pip install -r skills/yt-video-to-notes/requirements.txt
+.venv/bin/python -B -m unittest discover -s skills/yt-video-to-notes/tests -v
 ```
+
+完整測試包含 OpenCC 整合案例；缺少依賴會失敗，不再跳過。`.venv/` 已排除於 Git，日後重跑可直接使用最後一行指令。
 
 ## 收錄慣例
 

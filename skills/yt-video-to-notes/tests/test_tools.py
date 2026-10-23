@@ -1,5 +1,4 @@
 import contextlib
-import importlib.util
 import io
 import json
 from pathlib import Path
@@ -158,7 +157,6 @@ class CheckerTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("檢查未完成", result.stderr)
 
-    @unittest.skipUnless(importlib.util.find_spec("opencc"), "OpenCC 未安裝，整合測試未完成")
     def test_real_opencc_findings_and_taiwan_terms(self):
         from opencc import OpenCC
         text = "这是视频，接口。\n干杯，台灣。\n    - 软件\n```py\n软件\n```\nhttps://example.org/软件\n`软件`\n"
@@ -169,7 +167,6 @@ class CheckerTests(unittest.TestCase):
         self.assertTrue(any(r["line"] == 3 for r in rows))
         self.assertFalse(any(r["line"] > 3 for r in rows))
 
-    @unittest.skipUnless(importlib.util.find_spec("opencc"), "OpenCC 未安裝，整合測試未完成")
     def test_checker_cli_is_read_only(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "note.md"

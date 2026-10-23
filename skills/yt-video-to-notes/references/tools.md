@@ -4,11 +4,11 @@
 
 ## 繁中與台灣用語：chk.py
 
-使用 Python 3.10 以上；`chk.py` 需要 `opencc-python-reimplemented`（或提供相容 `opencc.OpenCC` 的環境）。如缺少套件，在適合的虛擬環境安裝，不改系統 Python：
+使用 Python 3.10 以上；先以 `python3 --version` 確認版本。`chk.py` 需要 `requirements.txt` 固定版本的 `opencc-python-reimplemented`。如缺少套件，在適合的虛擬環境安裝，不改系統 Python：
 
 ```sh
 python3 -m venv /tmp/yt-notes-check
-/tmp/yt-notes-check/bin/python -m pip install opencc-python-reimplemented
+/tmp/yt-notes-check/bin/python -m pip install -r requirements.txt
 /tmp/yt-notes-check/bin/python scripts/chk.py /path/to/new-note.md
 ```
 
@@ -81,7 +81,7 @@ python3 scripts/build.py check \
 ## 維護工具時
 
 ```sh
-python3 -m unittest discover -s tests -v
+/tmp/yt-notes-check/bin/python -B -m unittest discover -s tests -v
 ```
 
-OpenCC 整合測試需要前述套件；未安裝會標示跳過，不能將它當成已驗證的繁中檢查。測試只在暫存目錄建立資料，不寫入使用者的筆記庫。
+先完成前述虛擬環境與依賴安裝；完整測試包含 OpenCC 整合案例，未安裝會失敗，不再跳過。若使用其他虛擬環境，將指令中的 Python 路徑換成該環境。測試只在暫存目錄建立資料，不寫入使用者的筆記庫。
