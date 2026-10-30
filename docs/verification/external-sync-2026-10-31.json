@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-31",
+  "upstreamAudit": {
+    "pstack": {
+      "commit": "c742dd61706fbacc1b95f1a20b7b988cf096ce6c",
+      "files": 573,
+      "upstream_git_blob_matches": true,
+      "modes_match": true
+    },
+    "ub-mode": {
+      "commit": "57a8bdd28e45ed41900ace0bafa2ff76dd9ed70f",
+      "files": 2,
+      "upstream_git_blob_matches": true,
+      "modes_match": true
+    }
+  },
+  "unitTests": {
+    "count": 24,
+    "status": "passed",
+    "command": "python -B -m unittest discover -s tests -v",
+    "log": "/private/tmp/agent-skills-sync-tests-20261031.log"
+  },
+  "snapshotCheck": {
+    "status": "passed",
+    "files": 575,
+    "command": "python -B scripts/sync_externals.py check"
+  },
+  "scope": "對照 GitHub 原始 Git tree 的全部檔案與 blob SHA，另核對可執行模式；未執行上游技能或程式。",
+  "environment": {
+    "python": "3.13.17",
+    "PyYAML": "6.0.3"
+  },
+  "notes": [
+    "本機 Python 預設 CA 路徑缺少憑證，以 SSL_CERT_FILE=/etc/ssl/cert.pem 使用系統 CA 完成 HTTPS 下載；未關閉憑證驗證。",
+    "工作流程 YAML 與 bash 語法驗證已納入測試；尚未以本機測試取代 GitHub Actions 實際執行結果。"
+  ],
+  "repeatSync": {
+    "status": "passed",
+    "result": "上游來源版本沒有變更",
+    "report": "/private/tmp/agent-skills-repeat-sync-20261031.md"
+  }
+}

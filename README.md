@@ -108,9 +108,43 @@ python3 -m venv .venv
 ## 收錄慣例
 
 - **自製或改編**：放在 `skills/<skill-name>/`，保存完整技能資料夾。README 記錄用途與來源；改編版本另註明原始連結、版本或 commit，以及修改內容，並保留適用的原作者授權與署名。
-- **外部收藏**：先在下方記錄原始連結、用途、收藏理由與試用狀態；確認需要維護自己的版本時，再依來源授權收錄完整檔案。
+- **外部收藏**：以 `externals.yaml` 記錄來源、追蹤範圍、用途、收藏理由與試用狀態，原始檔案同步至 `external/<name>/`；`externals.lock.json` 保存 commit、檔案 SHA-256 與可執行權限，保留上游提供的授權與署名。
 - **來源標示**：區分自製、改編與外部收藏；未實際試用的項目標示「待試用」，不宣稱已驗證。
 
 ## 外部收藏
 
-目前尚未收錄外部 skills。
+外部專案的原始檔案保存在 `external/`，包含技能、代理、圖片、文件及上游提供的授權檔；這些副本尚未安裝到個人技能目錄，安裝與相依工具請依原始專案文件操作。
+
+下表由 `externals.yaml` 與 lock 檔產生；中文介紹、收藏理由與試用狀態請修改 YAML，再執行 `render`。
+
+<!-- EXTERNALS:START -->
+
+| 項目與同步副本 | 用途 | 收藏理由 | 試用狀態 | 同步版本 |
+| --- | --- | --- | --- | --- |
+| [ub-mode](external/ub-mode/README.md) · [上游](https://github.com/unclebob/ub-mode) | 強調 TDD、重構與品質檢查的工程紀律 Skill，結合 Crapper、Dryer、Mutator 檢視複雜度、重複與測試品質 | 將「先做對行為、再改善結構」整理成可重複使用的開發流程，適合研究如何把品質要求轉成具體檢查 | 待試用 | [57a8bdd](https://github.com/unclebob/ub-mode/commit/57a8bdd28e45ed41900ace0bafa2ff76dd9ed70f) |
+| [pstack](external/pstack/README.md) · [上游](https://github.com/cursor/plugins/tree/main/pstack) | 以 `/poteto-mode` 串接任務規劃、開發、驗證與多代理協作的工作流外掛；主要使用環境為 Cursor，另有官方 Claude Code 適配說明 | 依任務選擇工作流程，並把設計、平行探索、審查與實際驗證串在一起，適合研究完整的代理工作流 | 待試用 | [c742dd6](https://github.com/cursor/plugins/commit/c742dd61706fbacc1b95f1a20b7b988cf096ce6c) |
+
+<!-- EXTERNALS:END -->
+
+### 更新外部專案
+
+每週一台北時間 **09:17** 檢查上游（UTC 週一 01:17），也可以在 GitHub Actions 的 **Sync external projects** 手動執行。有變更時同步完整來源並建立或更新 `codex/sync-external-skills` PR，由人工審核合併；沒有變更時不產生提交。pstack 只追蹤 `cursor/plugins` 的 `pstack/`，不收錄其他外掛。
+
+同步流程會核對現有副本的校驗值，下載完成後才替換；本機副本有手動修改或下載失敗時停止，不覆蓋已有內容。複製來源不會執行上游程式或自動改變試用狀態。
+
+本機操作需 Python 3.10 以上。可使用前面的虛擬環境，另外安裝同步工具依賴：
+
+```sh
+.venv/bin/python -m pip install -r requirements-sync.txt
+.venv/bin/python -B scripts/sync_externals.py update
+.venv/bin/python -B scripts/sync_externals.py check
+```
+
+只修改中文介紹與試用狀態時，離線更新表格：
+
+```sh
+.venv/bin/python -B scripts/sync_externals.py render
+.venv/bin/python -B scripts/sync_externals.py check
+```
+
+排程需將 workflow 放到預設分支，並在儲存庫設定允許 GitHub Actions 建立 PR；完整設定、驗證、失敗處理及版本重現方式見 [外部同步說明](docs/external-sync.md)。

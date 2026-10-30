@@ -1,0 +1,25 @@
+version: 1
+sources:
+  - name: ub-mode
+    repository: unclebob/ub-mode
+    ref: master
+    path: .
+    required_files:
+      - README.md
+      - SKILL.md
+    description: 強調 TDD、重構與品質檢查的工程紀律 Skill，結合 Crapper、Dryer、Mutator 檢視複雜度、重複與測試品質
+    reason: 將「先做對行為、再改善結構」整理成可重複使用的開發流程，適合研究如何把品質要求轉成具體檢查
+    trial_status: 待試用
+  - name: pstack
+    repository: cursor/plugins
+    ref: main
+    path: pstack
+    required_files:
+      - README.md
+      - LICENSE
+      - .cursor-plugin/plugin.json
+      - agents/poteto-agent.md
+      - skills/poteto-mode/SKILL.md
+    description: 以 `/poteto-mode` 串接任務規劃、開發、驗證與多代理協作的工作流外掛；主要使用環境為 Cursor，另有官方 Claude Code 適配說明
+    reason: 依任務選擇工作流程，並把設計、平行探索、審查與實際驗證串在一起，適合研究完整的代理工作流
+    trial_status: 待試用
