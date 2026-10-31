@@ -8,6 +8,7 @@ A collection of AI agent skills I use, build, and discover.
 
 | Skill | 用途 | 來源 |
 | --- | --- | --- |
+| [skill-research](skills/skill-research/SKILL.md) | 依工作需求搜尋與比較 Agent Skills，核對適配性、維護證據、相依與資料流向，提出有來源的採用建議 | 自製 |
 | [git-commit-content](skills/git-commit-content/SKILL.md) | 根據實際 Git 變更，產生、修改或檢查繁體中文提交訊息，區分 Conventional Commits 規格、專案規則與文字偏好 | 自製 |
 | [obsidian-cli](skills/obsidian-cli/SKILL.md) | 操作指定 Vault，核對附件與 ZIP 的正式內容對照，依授權清理並修復連結 | 自製，共用版本 |
 | [obsidian-journal-note-refiner](skills/obsidian-journal-note-refiner/SKILL.md) | 整理及還原歷史日誌，按內容去重，保留原日期、任務與計分狀態 | 自製，共用版本 |
@@ -37,6 +38,15 @@ fi
 安裝其他技能時，將 `skill_name` 改為上表對應的資料夾名稱。Obsidian、IG 與 YT 共用版不預設個人筆記庫路徑；使用時指定目的地，分類、附件與備份政策沿用目標 Vault 的 `AGENTS.md` 或既有要求。兩個 Obsidian 技能可獨立使用，也可一併安裝；不需要同時安裝私人 Vault 的其他技能。
 
 ### 呼叫範例
+
+依需求尋找或比較技能：
+
+```text
+使用 $skill-research，幫我找能完成〈工作需求〉的 Agent Skills。
+目前使用〈代理／工具〉，請比較候選的適配性、維護證據、相依與資料流向，推薦最適合的一項。
+```
+
+也可提供單一 GitHub 技能連結，評估是否適合自己的情境。只要求研究或比較時不會安裝；已明確要求安裝指定項目時，沿用本次授權接續安裝流程。
 
 根據目前變更產生提交訊息：
 
