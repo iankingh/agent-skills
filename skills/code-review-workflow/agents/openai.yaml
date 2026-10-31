@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Review 工作流"
+  short_description: "依變更風險審查程式碼，以具體證據驗證問題並讓修正後複查收斂"
+  default_prompt: "使用 $code-review-workflow 審查指定 diff 或 PR，先確認範圍與風險，列出有證據的問題、驗證結果與仍未確認的限制。"
