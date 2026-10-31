@@ -38,7 +38,7 @@ externals.lock.json          # 已同步版本、檔案雜湊與權限
 | [obsidian-cli](skills/obsidian-cli/SKILL.md) | 操作指定 Vault，核對附件與 ZIP 的正式內容對照，依授權清理並修復連結 | 自製，共用版本 |
 | [obsidian-journal-note-refiner](skills/obsidian-journal-note-refiner/SKILL.md) | 整理及還原歷史日誌，按內容去重，保留原日期、任務與計分狀態 | 自製，共用版本 |
 | [ig-post-to-notes](skills/ig-post-to-notes/SKILL.md) | 整理 Instagram 單篇貼文與完整輪播，保留來源與提示詞；依要求存入 Obsidian | 自製，共用版本 |
-| [yt-video-to-notes](skills/yt-video-to-notes/SKILL.md) | 整理 YouTube 影片與明確指定的課程，原稿匯入保留正文並依目標規則做必要轉換；提供時間戳、繁中檢查及課程續作工具 | 自製，共用版本 |
+| [yt-video-to-notes](skills/yt-video-to-notes/SKILL.md) | 將 YouTube 影片或播放清單轉成資料夾中的繁中 Markdown，單支一篇、清單建立總覽與章節；提供音訊長度核對、逐字稿分段、時間戳、繁中檢查與續作工具 | 自製，共用版本 |
 | [obsidian-zettelkasten](skills/obsidian-zettelkasten/SKILL.md) | 整理文獻、永久筆記與 MOC，管理屬性及雙向連結；整套課程先沿用目的地課程結構分流 | 自製，共用版本 |
 
 ## 使用方式
@@ -106,6 +106,24 @@ fi
 影片連結：〈貼上 YouTube 影片網址〉
 ```
 
+整理 YouTube 影片並存入一般資料夾：
+
+```text
+使用 $yt-video-to-notes 將這支影片整理成繁體中文 Markdown，存入指定資料夾下的「影片筆記」。
+影片連結：〈貼上 YouTube 影片網址〉
+目標資料夾：〈填入路徑〉
+```
+
+整理整份播放清單：
+
+```text
+使用 $yt-video-to-notes 整理這份播放清單，在指定的影片筆記目錄建立總覽與章節，記錄每集實際來源及缺口。
+播放清單連結：〈貼上 playlist?list=... 網址〉
+影片筆記目錄：〈填入路徑〉
+```
+
+需要寫入 Obsidian 時，可另外指定 Vault，沿用既有格式與索引。
+
 整理並存入自己的 Obsidian 筆記庫：
 
 ```text
@@ -126,7 +144,7 @@ fi
 
 整套課程先查既有課程資料夾與模板，沿用首頁、章節及教材層級；課程數與文獻數分開計算，匯入完成不能推定已學完。`obsidian-zettelkasten` 也先做課程分流，再處理獨立文獻或永久筆記。
 
-YT 技能僅在要求寫入時存入筆記庫；新內容的索引與備份位置依既有慣例或使用者指定。播放清單參數不會自動擴大成整個清單，取得內容不完整時會說明缺漏，不保證每支影片都能取得字幕。
+YT 技能以一般資料夾與 Markdown 為預設，僅在要求寫入時建立檔案；Obsidian 為選用目的地。純播放清單連結依清單處理，單支網址附帶的播放清單參數不會擴大範圍。來源不完整時揭露缺口，不保證每支影片都能取得字幕；不需 Notion。
 
 ### 附件清理與歷史日誌還原
 
@@ -144,7 +162,8 @@ YT 技能僅在要求寫入時存入筆記庫；新內容的索引與備份位�
 
 ### YT 輔助工具與驗證
 
-- `build.py`：將草稿標記轉成影片時間戳及 Obsidian 連結，以來源與 SHA-256 記錄明確要求的課程章節，檢查缺集與續作狀態。
+- `build.py`：將草稿標記轉成影片時間戳及相對 Markdown 連結（另支援 Obsidian），以來源與 SHA-256 記錄章節，檢查缺集與續作狀態。
+- `sources.py`：核對 WAV 實際樣本長度或 ffprobe 音訊長度，並按秒數區間讀取 SRT、VTT 與 JSON 逐字稿；不把長度相符當成內容已驗證。
 - `chk.py`：唯讀檢查新撰寫內容中的疑似簡體與台灣用語，保留原文供人工判讀。
 
 工具需 Python 3.10 以上；`chk.py` 另需 `opencc-python-reimplemented`。安裝方式與指令詳見 [YT 工具說明](skills/yt-video-to-notes/references/tools.md)。這些工具不套用於原文匯入。

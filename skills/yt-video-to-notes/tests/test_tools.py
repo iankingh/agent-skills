@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from urllib.parse import unquote
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 sys.path.insert(0, str(SCRIPTS))
@@ -54,6 +55,45 @@ class BuildTests(unittest.TestCase):
         (self.root / "問題？.md").write_text("另一篇")
         with self.assertRaises(ValueError):
             build.render("@@ref", mentions={"ref": "問題？"}, vault=self.root)
+
+    def test_markdown_links_resolve_from_nested_output_with_special_characters(self):
+        directory = self.root / "資料 夾"
+        directory.mkdir()
+        target = directory / "觀念 #1 (說明).md"
+        target.write_text("已驗收筆記")
+        output = self.root / "課程/章節/01.md"
+        result = build.render("@@ref", mentions={"ref": "資料 夾/觀念 #1 (說明)"},
+                              notes_root=self.root, output_path=output)
+        destination = result.split("](", 1)[1][:-1]
+        self.assertEqual((output.parent / unquote(destination)).resolve(), target.resolve())
+        self.assertIn("%20", destination)
+        self.assertIn("%23", destination)
+        self.assertIn("%28", destination)
+        self.assertNotIn("[[", result)
+
+    def test_note_links_cannot_escape_root_or_resolve_ambiguous_names(self):
+        (self.root / "nested").mkdir()
+        (self.root / "same.md").write_text("第一篇")
+        (self.root / "nested/same.md").write_text("第二篇")
+        for target in ["same", "../outside.md"]:
+            with self.subTest(target=target), self.assertRaises(ValueError):
+                build.render("@@ref", mentions={"ref": target}, notes_root=self.root,
+                             output_path=self.root / "out.md")
+
+    def test_markdown_render_cli_and_explicit_obsidian_mode(self):
+        (self.root / "README.md").write_text("# 總覽")
+        mapping = self.root / "map.json"
+        mapping.write_text(json.dumps({"mentions": {"home": "README"}}))
+        draft, output = self.root / "draft.md", self.root / "章節/01.md"
+        draft.write_text("@@home {{0:09}}")
+        with contextlib.redirect_stdout(io.StringIO()):
+            status = build.main(["render", str(draft), "--output", str(output),
+                                 "--notes-root", str(self.root), "--map", str(mapping), "--video", VIDEO])
+        self.assertEqual(status, 0)
+        self.assertIn("[README](../README.md)", output.read_text())
+        self.assertIn("&t=9s)", output.read_text())
+        self.assertEqual(build.render("@@home", mentions={"home": "README"}, notes_root=self.root,
+                                     link_style="obsidian"), "[[README]]")
 
     def test_code_frontmatter_and_callout_fences_preserved(self):
         text = '---\nexample: "{{unknown}}"\n---\n`{{bad}}`\n```js\n{{code}}\n```\n> ```\n> @@code\n> ```\n{{0:03}}'

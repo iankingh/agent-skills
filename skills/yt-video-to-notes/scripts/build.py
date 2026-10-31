@@ -4,10 +4,11 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import sys
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, quote, urlsplit
 
 from markdown_regions import mask_markdown
 
@@ -67,21 +68,31 @@ def seconds(value):
     return minutes * 60 + secs
 
 
-def note_link(target, vault):
-    if not vault or not vault.is_dir():
-        raise ValueError("@@key 轉換需要存在的 --vault 目錄")
-    if not isinstance(target, str) or not target or any(ch in target for ch in "[]|#^\n\r"):
-        raise ValueError("筆記映射須為實際檔名或 vault 相對路徑，不含顯示別名或段落")
-    root = vault.resolve()
+def note_link(target, root, link_style="obsidian", output_path=None):
+    if not root or not root.is_dir():
+        raise ValueError("@@key 轉換需要存在的 --notes-root 或 --vault 目錄")
+    if not isinstance(target, str) or not target or any(ch in target for ch in "\n\r"):
+        raise ValueError("筆記映射須為實際檔名或筆記根目錄的相對路徑")
+    if link_style == "obsidian" and any(ch in target for ch in "[]|#^"):
+        raise ValueError("Obsidian 筆記映射不含顯示別名或段落")
+    root = root.resolve()
     relative = Path(target if target.endswith(".md") else target + ".md")
     if relative.is_absolute() or ".." in relative.parts:
-        raise ValueError("筆記映射不可超出 vault")
+        raise ValueError("筆記映射不可超出筆記根目錄")
     candidates = ([root / relative] if len(relative.parts) > 1
                   else [p for p in root.rglob("*.md") if p.name == relative.name])
     matches = [p for p in candidates if p.is_file() and p.resolve().is_relative_to(root)]
     if len(matches) != 1:
         raise ValueError(f"筆記不存在或無法唯一定位：{target}")
-    return "[[" + matches[0].relative_to(root).as_posix()[:-3] + "]]"
+    if link_style == "obsidian":
+        return "[[" + matches[0].relative_to(root).as_posix()[:-3] + "]]"
+    if link_style != "markdown" or output_path is None:
+        raise ValueError("Markdown 筆記連結需要輸出檔案路徑")
+    label = matches[0].stem
+    for char in ("\\", "[", "]", "|"):
+        label = label.replace(char, "\\" + char)
+    destination = Path(os.path.relpath(matches[0], output_path.resolve().parent)).as_posix()
+    return f"[{label}]({quote(destination, safe='/')})"
 
 
 def ensure_resolved(text):
@@ -89,8 +100,16 @@ def ensure_resolved(text):
         raise ValueError("仍有未解析標記；請檢查時間格式、影片與筆記映射")
 
 
-def render(text, video=None, episodes=None, mentions=None, vault=None):
+def render(text, video=None, episodes=None, mentions=None, vault=None, *,
+           notes_root=None, link_style=None, output_path=None):
     episodes, mentions = episodes or {}, mentions or {}
+    if notes_root is not None and vault is not None:
+        raise ValueError("--notes-root 與 --vault 擇一使用")
+    # Preserve existing --vault callers; ordinary folders use portable links.
+    link_style = link_style or ("obsidian" if vault is not None else "markdown")
+    if link_style not in {"markdown", "obsidian"}:
+        raise ValueError("連結格式須為 markdown 或 obsidian")
+    root = notes_root if notes_root is not None else vault
     default = video_url(video) if video else None
     masked = mask_markdown(text)
     edits = []
@@ -99,7 +118,7 @@ def render(text, video=None, episodes=None, mentions=None, vault=None):
         if key is not None:
             if key not in mentions:
                 raise ValueError(f"缺少筆記映射：{key}")
-            value = note_link(mentions[key], vault)
+            value = note_link(mentions[key], root, link_style, output_path)
         elif token.startswith("ep:"):
             ep = token[3:]
             if ep not in episodes:
@@ -216,7 +235,10 @@ def main(argv=None):
     render_parser.add_argument("--output", type=Path, required=True)
     render_parser.add_argument("--video")
     render_parser.add_argument("--map", type=Path)
-    render_parser.add_argument("--vault", type=Path)
+    roots = render_parser.add_mutually_exclusive_group()
+    roots.add_argument("--notes-root", type=Path, help="一般 Markdown 筆記根目錄")
+    roots.add_argument("--vault", type=Path, help="相容既有 Obsidian 連結模式")
+    render_parser.add_argument("--link-style", choices=["markdown", "obsidian"])
     render_parser.add_argument("--overwrite", action="store_true")
     record_parser = sub.add_parser("record", help="人工驗收後記錄完成章節")
     record_parser.add_argument("file", type=Path)
@@ -234,7 +256,8 @@ def main(argv=None):
                 raise ValueError("輸出不可覆寫輸入草稿")
             if args.output.exists() and not args.overwrite:
                 raise ValueError("輸出已存在；確認可取代後才使用 --overwrite")
-            output = render(args.input.read_text(encoding="utf-8"), args.video, episodes, mentions, args.vault)
+            output = render(args.input.read_text(encoding="utf-8"), args.video, episodes, mentions, args.vault,
+                            notes_root=args.notes_root, link_style=args.link_style, output_path=args.output)
             args.output.parent.mkdir(parents=True, exist_ok=True)
             with args.output.open("w" if args.overwrite else "x", encoding="utf-8") as handle:
                 handle.write(output)

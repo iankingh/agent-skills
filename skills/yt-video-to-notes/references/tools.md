@@ -28,11 +28,13 @@ python3 -m venv /tmp/yt-notes-check
 python3 scripts/build.py render /path/to/draft.md \
   --video 'https://www.youtube.com/watch?v=e0UOuQ_lCUY&list=example&index=1' \
   --map /path/to/mappings.json \
-  --vault '/path/to/vault' \
-  --output /path/to/new-note.md
+  --notes-root '/path/to/影片筆記' \
+  --output '/path/to/影片筆記/課程/章節/01-筆記.md'
 ```
 
-`--video` 接受影片 ID 或 YouTube watch／youtu.be／Shorts／live／embed 網址；只取該支影片 ID，不抓取或展開播放清單。`--map`、`--vault` 只在相應標記需要時提供。程式碼與 frontmatter 中的標記保留為原文。
+`--video` 接受影片 ID 或 YouTube watch／youtu.be／Shorts／live／embed 網址；只取該支影片 ID，不抓取或展開播放清單。`--map`、筆記根目錄只在相應標記需要時提供。程式碼與 frontmatter 中的標記保留為原文。
+
+一般資料夾使用 `--notes-root`，預設產生相對於 `--output` 所在目錄的 Markdown 連結，保留 `.md` 並編碼路徑字元。Obsidian 使用 `--vault /path/to/vault --link-style obsidian`；相容舊指令，單獨指定 `--vault` 仍產生 wiki links。兩種根目錄參數擇一，明確的 `--link-style markdown` 可覆寫舊模式；不需安裝 Obsidian。
 
 ```json
 {
@@ -53,9 +55,22 @@ python3 scripts/build.py render /path/to/draft.md \
 | `{{1:05}}` | 預設影片的 `[1:05](…&t=65s)` |
 | `{{2@3:04}}` | 第 2 集的 `[第 2 集 3:04](…&t=184s)` |
 | `{{ep:2}}` | `[第 2 集](第 2 集影片網址)` |
-| `@@solid` | 對應實際筆記的 `[[vault 相對路徑]]` |
+| `@@solid` | 對應實際筆記的 `[筆記名稱](相對路徑.md)`；Obsidian 模式為 `[[vault 相對路徑]]` |
 
-分鐘可超過 59，秒數限 00–59。映射鍵使用英數字、底線或連字號；集數使用無前導零的正整數。筆記映射使用無副檔名的檔名或 vault 相對路徑（也接受 `.md`），不包含 alias 或段落。`--vault` 中必須存在唯一對應檔案。缺少來源、缺少筆記、歧義或殘留標記會以退出碼 `2` 報錯，且不產生輸出。
+分鐘可超過 59，秒數限 00–59。映射鍵使用英數字、底線或連字號；集數使用無前導零的正整數。筆記映射使用無副檔名的檔名或筆記根目錄相對路徑（也接受 `.md`）；Obsidian 模式不包含 alias 或段落。根目錄內必須有唯一對應檔案，不能用 `..` 或符號連結指向根目錄之外。缺少來源、缺少筆記、歧義或殘留標記以退出碼 `2` 報錯，且不產生輸出。
+
+## 音訊量測與逐字稿閱讀：sources.py
+
+只需 Python 標準函式庫，非 WAV 音訊另需 PATH 中的 ffprobe。唯讀，不下載影片、不呼叫辨識模型、不寫入筆記：
+
+```sh
+python3 scripts/sources.py audio /path/to/audio.wav --expected-seconds 120 --tolerance-seconds 5
+python3 scripts/sources.py slice /path/to/subtitles.vtt --start 0 --end 60
+```
+
+`audio` 對 PCM WAV 讀取實際樣本數並偵測截斷；其他格式以 ffprobe 量測。長度相符退出 `0`、不符退出 `1`、無法量測退出 `2`。報告的 `content_verified` 固定為 `false`，還要抽查是否為廣告、重複或下一支影片。
+
+`slice` 支援 SRT、VTT、區段 JSON，輸出重疊區段且保留原始時間；時間錯誤、空逐字稿或不支援格式退出 `2`，沒有重疊區段時輸出空陣列。格式、媒體取得、可選 ASR 及來源缺口記錄見 [media.md](media.md)。
 
 ## 播放清單完成紀錄與續作
 
@@ -71,7 +86,7 @@ python3 scripts/build.py check \
   --log '/path/to/batch/created.txt'
 ```
 
-`created.txt` 是 UTF-8 JSON Lines，每行含 `path`（絕對路徑）、`episodes`（連續集數）、`sources`（影片網址對照）及 `sha256`。放在 Vault 外的本批暫存區；續作使用同一份映射和紀錄。完成後將來源對照與驗收結果收斂為專案要求的 Markdown 維護紀錄，再清理機器紀錄，不因工具輸出就新增 Vault 內的 JSON／TXT 檔。
+`created.txt` 是 UTF-8 JSON Lines，每行含 `path`（絕對路徑）、`episodes`（連續集數）、`sources`（影片網址對照）及 `sha256`。放在輸出筆記目錄外的本批工作區；續作使用同一份映射和紀錄。完成後將來源對照與驗收結果收斂為 Markdown 再依目標政策清理，不因工具輸出就新增正式筆記目錄內的 JSON／TXT 檔。來源實際取得範圍另記在筆記與總覽，機器紀錄不代表影片已完整讀取。
 
 - `record` 再次記錄相同內容會跳過；重複涵蓋其他章節或檔案內容與舊紀錄不同時報錯。
 - 已修改或搬移的章節須重新人工驗收，移除該行舊紀錄，再以新路徑 `record`。不能只修改雜湊來掩蓋尚未驗收的變更。
