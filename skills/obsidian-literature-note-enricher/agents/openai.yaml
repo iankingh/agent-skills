@@ -1,0 +1,4 @@
+interface:
+  display_name: "文獻補讀與查核"
+  short_description: "補讀文獻的來源與圖表，區分原作、查核及補充，保留可追溯缺口"
+  default_prompt: "使用 $obsidian-literature-note-enricher 補讀指定文獻缺口，追溯來源、核對關鍵說法與圖表，保留原有內容並註明未確認部分。"

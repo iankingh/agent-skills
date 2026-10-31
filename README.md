@@ -8,6 +8,9 @@ A collection of AI agent skills I use, build, and discover.
 
 | Skill | 用途 | 來源 |
 | --- | --- | --- |
+| [tutor-setup](skills/tutor-setup/SKILL.md) | 將文件或程式碼轉成可追溯的學習筆記與練習，核對 PDF 圖表、章節索引與原文證據 | 自製，共用版本 |
+| [obsidian-literature-note-enricher](skills/obsidian-literature-note-enricher/SKILL.md) | 補讀文獻的來源與圖表，核對作者、日期及數據範圍，區分原作、查核與整理者補充 | 自製，共用版本 |
+| [code-review-workflow](skills/code-review-workflow/SKILL.md) | 依變更風險審查程式碼，驗證具體缺陷、去除重複意見並讓修正後複查收斂 | 自製 |
 | [skill-research](skills/skill-research/SKILL.md) | 依工作需求搜尋與比較 Agent Skills，核對適配性、維護證據、相依與資料流向，提出有來源的採用建議 | 自製 |
 | [git-commit-content](skills/git-commit-content/SKILL.md) | 根據實際 Git 變更，產生、修改或檢查繁體中文提交訊息，區分 Conventional Commits 規格、專案規則與文字偏好 | 自製 |
 | [obsidian-cli](skills/obsidian-cli/SKILL.md) | 操作指定 Vault，核對附件與 ZIP 的正式內容對照，依授權清理並修復連結 | 自製，共用版本 |
@@ -177,4 +180,3 @@ python3 -m venv .venv
 ```
 
 排程需將 workflow 放到預設分支，並在儲存庫設定允許 GitHub Actions 建立 PR；完整設定、驗證、失敗處理及版本重現方式見 [外部同步說明](docs/external-sync.md)。
-
