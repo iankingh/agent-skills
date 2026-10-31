@@ -1,0 +1,4 @@
+interface:
+  display_name: "Skill 研究與比較"
+  short_description: "依工作需求比較 GitHub 技能，查核相依、維護品質與資料流向"
+  default_prompt: "使用 $skill-research，依我的需求尋找或比較合適的 Agent Skills，列出適配依據、相依與資料流向，推薦最適合的選擇。"
