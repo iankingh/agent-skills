@@ -9,6 +9,8 @@ A collection of AI agent skills I use, build, and discover.
 | Skill | 用途 | 來源 |
 | --- | --- | --- |
 | [git-commit-content](skills/git-commit-content/SKILL.md) | 根據實際 Git 變更，產生、修改或檢查繁體中文提交訊息，區分 Conventional Commits 規格、專案規則與文字偏好 | 自製 |
+| [obsidian-cli](skills/obsidian-cli/SKILL.md) | 操作指定 Vault，核對附件與 ZIP 的正式內容對照，依授權清理並修復連結 | 自製，共用版本 |
+| [obsidian-journal-note-refiner](skills/obsidian-journal-note-refiner/SKILL.md) | 整理及還原歷史日誌，按內容去重，保留原日期、任務與計分狀態 | 自製，共用版本 |
 | [ig-post-to-notes](skills/ig-post-to-notes/SKILL.md) | 整理 Instagram 單篇貼文與完整輪播，保留來源與提示詞；依要求存入 Obsidian | 自製，共用版本 |
 | [yt-video-to-notes](skills/yt-video-to-notes/SKILL.md) | 整理 YouTube 影片，或原文匯入已整理文稿並保留完整標題；提供時間戳建置、繁中檢查與課程續作工具 | 自製，共用版本 |
 
@@ -32,7 +34,7 @@ else
 fi
 ```
 
-安裝 IG 或 YT 技能時，將 `skill_name` 改為 `ig-post-to-notes` 或 `yt-video-to-notes`。本 repo 的 IG 與 YT 版本不預設個人筆記庫路徑；使用時指定目的地，分類與索引沿用該筆記庫的慣例。
+安裝其他技能時，將 `skill_name` 改為上表對應的資料夾名稱。Obsidian、IG 與 YT 共用版不預設個人筆記庫路徑；使用時指定目的地，分類、附件與備份政策沿用目標 Vault 的 `AGENTS.md` 或既有要求。兩個 Obsidian 技能可獨立使用，也可一併安裝；不需要同時安裝私人 Vault 的其他技能。
 
 ### 呼叫範例
 
@@ -87,6 +89,20 @@ fi
 原文匯入會保留原始檔案內容，依主要來源決定是否加上 `▶️ YT-` 前綴，並比對內容一致性；不新增 metadata、aliases 或回連，不因同影片而合併既有筆記。只有明確要求重整時才套用新筆記模板與建置流程。
 
 YT 技能僅在要求寫入時存入筆記庫；新內容的索引與備份位置依既有慣例或使用者指定。播放清單參數不會自動擴大成整個清單，取得內容不完整時會說明缺漏，不保證每支影片都能取得字幕。
+
+### 附件清理與歷史日誌還原
+
+```text
+使用 $obsidian-cli 核對我指定 Vault 的附件與 ZIP，建立原檔到正式筆記的對照。
+依我的清理範圍處理；區分完整收錄、只有摘要及獨有歷史版本，更新受影響連結。
+```
+
+```text
+使用 $obsidian-journal-note-refiner 將這份備份中的舊日誌還原到原日期。
+先比對現有日誌與候選副本，內容相同只還原一份，保留任務與勾選狀態。
+```
+
+附件判定以內容及已確認對照為準；有對應頁面不代表舊版與現有內容逐位元相同。ZIP 的清理或保留遵循當次要求，不為已依使用者意圖清理的檔案自動補建備份。日誌還原不重新配發任務，也不為補齊導航自動建立空日誌或週計畫。
 
 ### YT 輔助工具與驗證
 
