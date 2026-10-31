@@ -1,4 +1,5 @@
 interface:
   display_name: "🎬 YT 影片整理到筆記盒"
-  short_description: "整理 YouTube 影片，或原文匯入已有筆記，保留完整標題並加上影片前綴"
-  default_prompt: "使用 $yt-video-to-notes 處理提供的影片素材：已整理好的文稿只匯入並加上前綴，保留完整標題與原文；需要新摘要時再整理影片並更新筆記盒索引。"
+  short_description: "整理影片與整套課程，原文匯入保留標題正文並依目標規則歸檔"
+  default_prompt: "使用 $yt-video-to-notes 處理提供的影片或課程素材：先確認單篇與課程分流；已整理文稿保留正文，只做目標規則要求的必要轉換，新摘要再整理來源內容。"
+

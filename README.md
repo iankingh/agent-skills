@@ -12,7 +12,8 @@ A collection of AI agent skills I use, build, and discover.
 | [obsidian-cli](skills/obsidian-cli/SKILL.md) | 操作指定 Vault，核對附件與 ZIP 的正式內容對照，依授權清理並修復連結 | 自製，共用版本 |
 | [obsidian-journal-note-refiner](skills/obsidian-journal-note-refiner/SKILL.md) | 整理及還原歷史日誌，按內容去重，保留原日期、任務與計分狀態 | 自製，共用版本 |
 | [ig-post-to-notes](skills/ig-post-to-notes/SKILL.md) | 整理 Instagram 單篇貼文與完整輪播，保留來源與提示詞；依要求存入 Obsidian | 自製，共用版本 |
-| [yt-video-to-notes](skills/yt-video-to-notes/SKILL.md) | 整理 YouTube 影片，或原文匯入已整理文稿並保留完整標題；提供時間戳建置、繁中檢查與課程續作工具 | 自製，共用版本 |
+| [yt-video-to-notes](skills/yt-video-to-notes/SKILL.md) | 整理 YouTube 影片與明確指定的課程，原稿匯入保留正文並依目標規則做必要轉換；提供時間戳、繁中檢查及課程續作工具 | 自製，共用版本 |
+| [obsidian-zettelkasten](skills/obsidian-zettelkasten/SKILL.md) | 整理文獻、永久筆記與 MOC，管理屬性及雙向連結；整套課程先沿用目的地課程結構分流 | 自製，共用版本 |
 
 ## 使用方式
 
@@ -34,7 +35,7 @@ else
 fi
 ```
 
-安裝其他技能時，將 `skill_name` 改為上表對應的資料夾名稱。Obsidian、IG 與 YT 共用版不預設個人筆記庫路徑；使用時指定目的地，分類、附件與備份政策沿用目標 Vault 的 `AGENTS.md` 或既有要求。兩個 Obsidian 技能可獨立使用，也可一併安裝；不需要同時安裝私人 Vault 的其他技能。
+安裝其他技能時，將 `skill_name` 改為上表對應的資料夾名稱。Obsidian、IG 與 YT 共用版不預設個人筆記庫路徑；使用時指定目的地，分類、附件與備份政策沿用目標 Vault 的 `AGENTS.md` 或既有要求。Obsidian 相關技能可獨立使用，也可一併安裝；不需要同時安裝私人 Vault 的其他技能。
 
 ### 呼叫範例
 
@@ -86,7 +87,9 @@ fi
 筆記庫路徑：〈填入自己的筆記庫路徑〉
 ```
 
-原文匯入會保留原始檔案內容，依主要來源決定是否加上 `▶️ YT-` 前綴，並比對內容一致性；不新增 metadata、aliases 或回連，不因同影片而合併既有筆記。只有明確要求重整時才套用新筆記模板與建置流程。
+明確只複製、只改名或要求逐位元保留時，不加寫內容並比對雜湊。一般匯入保留正文、程式碼、表格、外部來源及閱讀限制，只做已授權或目標專案明訂的必要屬性、匯出連結及導航轉換，分開驗證保留內容與預期變更；不因同影片就合併原稿。只有明確要求重整時才套用新正文模板。
+
+整套課程先查既有課程資料夾與模板，沿用首頁、章節及教材層級；課程數與文獻數分開計算，匯入完成不能推定已學完。`obsidian-zettelkasten` 也先做課程分流，再處理獨立文獻或永久筆記。
 
 YT 技能僅在要求寫入時存入筆記庫；新內容的索引與備份位置依既有慣例或使用者指定。播放清單參數不會自動擴大成整個清單，取得內容不完整時會說明缺漏，不保證每支影片都能取得字幕。
 
@@ -164,3 +167,4 @@ python3 -m venv .venv
 ```
 
 排程需將 workflow 放到預設分支，並在儲存庫設定允許 GitHub Actions 建立 PR；完整設定、驗證、失敗處理及版本重現方式見 [外部同步說明](docs/external-sync.md)。
+

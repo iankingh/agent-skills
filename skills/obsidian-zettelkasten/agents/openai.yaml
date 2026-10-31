@@ -1,0 +1,4 @@
+interface:
+  display_name: "Obsidian Zettelkasten"
+  short_description: "整理文獻、永久筆記與主題導航，先辨識整套課程並沿用目標 Vault 規則"
+  default_prompt: "使用 $obsidian-zettelkasten 整理指定 Vault 的素材：先辨識課程、文獻或概念，再沿用現有結構、屬性與雙向連結，保留來源及閱讀限制。"
