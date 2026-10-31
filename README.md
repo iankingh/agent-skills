@@ -4,6 +4,28 @@ A collection of AI agent skills I use, build, and discover.
 
 收錄自己常用、自製或改編的 AI agent skills，以及網路上探索收集的技能資源。技能內容以繁體中文為主，每個 skill 使用獨立資料夾保存完整指令與相關檔案。
 
+## 目錄結構
+
+技能集中在 `skills/`，沿用 [OpenAI Skills](https://github.com/openai/skills) 與 [Anthropic Skills](https://github.com/anthropics/skills) 官方技能庫的收錄方式；外部專案則在 `external/` 保存上游完整結構。
+
+```text
+AGENTS.md                    # 專案代理工作規則
+skills/
+└── <skill-name>/
+    ├── SKILL.md
+    ├── agents/openai.yaml   # 選用：技能的顯示、呼叫與相依設定
+    ├── scripts/             # 選用：技能使用的程式
+    ├── references/          # 選用：補充文件
+    └── assets/              # 選用：範本與資源
+external/
+├── ub-mode/                 # 上游專案完整副本
+└── pstack/                  # 上游 pstack/ 完整副本，包含其 agents/ 與 skills/
+externals.yaml               # 同步來源與人工維護的收藏資訊
+externals.lock.json          # 已同步版本、檔案雜湊與權限
+```
+
+目前自製內容都是技能。未來收錄自製的獨立子代理時，本專案使用根目錄 `agents/<工具名稱>/` 保存定義，有實際內容才建立資料夾。這裡的 `skills/` 與未來的 `agents/` 是內容庫的收錄位置，實際安裝與載入位置依目標工具文件操作。維護本專案時，遵循 [AGENTS.md](AGENTS.md) 的作業規則。
+
 ## 技能索引
 
 | Skill | 用途 | 來源 |
@@ -139,8 +161,10 @@ python3 -m venv .venv
 
 ## 收錄慣例
 
-- **自製或改編**：放在 `skills/<skill-name>/`，保存完整技能資料夾。README 記錄用途與來源；改編版本另註明原始連結、版本或 commit，以及修改內容，並保留適用的原作者授權與署名。
-- **外部收藏**：以 `externals.yaml` 記錄來源、追蹤範圍、用途、收藏理由與試用狀態，原始檔案同步至 `external/<name>/`；`externals.lock.json` 保存 commit、檔案 SHA-256 與可執行權限，保留上游提供的授權與署名。
+- **自製或改編技能**：放在 `skills/<skill-name>/`，保存完整技能資料夾。README 記錄用途與來源；改編版本另註明原始連結、版本或 commit，以及修改內容，並保留適用的原作者授權與署名。
+- **技能附屬設定**：`skills/<skill-name>/agents/openai.yaml` 依 [OpenAI 文件](https://learn.chatgpt.com/docs/build-skills) 隨技能保留，設定顯示資訊、呼叫政策、預設提示詞與工具相依；它不是獨立子代理定義，安裝技能時一併保留。
+- **自製獨立子代理**：未來放在根目錄 `agents/<工具名稱>/`，依工具格式保存，並在 README 記錄用途、適用工具及安裝位置。不同工具各自維護定義，例如 [Claude Code](https://code.claude.com/docs/en/sub-agents) 的 `.claude/agents/` 與 [Cursor](https://cursor.com/docs/subagents) 的 `.cursor/agents/`；不預設同一份定義可跨工具通用，也不預先建立空資料夾。
+- **外部收藏**：以 `externals.yaml` 記錄來源、追蹤範圍、用途、收藏理由與試用狀態，原始檔案同步至 `external/<name>/`；`externals.lock.json` 保存 commit、檔案 SHA-256 與可執行權限，保留上游提供的授權與署名。`external/` 僅同步上游，完整保留原有路徑與結構，不將其中的技能、代理或其他元件抽出、搬移或重新分類。
 - **來源標示**：區分自製、改編與外部收藏；未實際試用的項目標示「待試用」，不宣稱已驗證。
 
 ## 外部收藏
