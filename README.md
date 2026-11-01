@@ -8,6 +8,9 @@ A collection of AI agent skills I use, build, and discover.
 
 | Skill | 用途 | 來源 |
 | --- | --- | --- |
+| [obsidian-note-refiner](skills/obsidian-note-refiner/SKILL.md) | 依筆記類型整理指定 Obsidian Vault 的既有筆記，判斷輕修、重整或跳過，維持屬性規格、來源及雙向連結。 | 自製，共用版本 |
+| [obsidian-literature-note-refiner](skills/obsidian-literature-note-refiner/SKILL.md) | 整理既有 Obsidian 文獻筆記的摘要、來源、作者、屬性、Markdown 與關聯導航；不處理新素材建頁或檔名批次分類。 | 自製，共用版本 |
+| [literature-organizer](skills/literature-organizer/SKILL.md) | 依指定 Vault 慣例整理文獻筆記檔名、匯出識別碼、主題分類及重複候選，核對原稿並修復受影響連結。 | 自製，共用版本 |
 | [tutor-setup](skills/tutor-setup/SKILL.md) | 將文件或程式碼轉成可追溯的學習筆記與練習，核對 PDF 圖表、章節索引與原文證據 | 自製，共用版本 |
 | [obsidian-literature-note-enricher](skills/obsidian-literature-note-enricher/SKILL.md) | 補讀文獻、圖表與影片來源，核對作者、日期及實際閱讀範圍，區分原作、查核與整理者補充 | 自製，共用版本 |
 | [code-review-workflow](skills/code-review-workflow/SKILL.md) | 依變更風險審查程式碼，驗證具體缺陷、去除重複意見並讓修正後複查收斂 | 自製 |
