@@ -203,16 +203,16 @@ python3 -m venv .venv
 
 ### 更新外部專案
 
-每週一台北時間 **09:17** 檢查上游（UTC 週一 01:17），也可以在 GitHub Actions 的 **Sync external projects** 手動執行。有變更時同步完整來源並建立或更新 `codex/sync-external-skills` PR，由人工審核合併；沒有變更時不產生提交。pstack 只追蹤 `cursor/plugins` 的 `pstack/`，不收錄其他外掛。
+每週一台北時間 **09:17** 檢查上游（UTC 週一 01:17），也可以在 GitHub Actions 的 **Sync external projects** 手動執行。同步透過 Git fetch 取得來源，將 agent-skills 的原有提交和上游原始提交一併保留在 Git 歷史中。有變更時建立或更新 `codex/sync-external-skills` PR，審核後以 **Create a merge commit** 合併。pstack 的工作目錄只收錄 `cursor/plugins` 的 `pstack/`，Git 歷史保留來源提交完整的父系。
 
-同步流程會核對現有副本的校驗值，下載完成後才替換；本機副本有手動修改或下載失敗時停止，不覆蓋已有內容。複製來源不會執行上游程式或自動改變試用狀態。
+同步流程會先核對現有副本，準備好各來源的 Git tree 和版本鎖定資訊後才更新分支。本機副本有手動修改或 fetch 失敗時停止。上游內容只供收錄，試用狀態仍由人工維護。
 
-本機操作需 Python 3.10 以上。可使用前面的虛擬環境，另外安裝同步工具依賴：
+本機操作需 Git、完整的 clone 與 Python 3.10 以上。從乾淨的 Git 工作目錄執行，`update` 有變更時會建立同步提交：
 
 ```sh
 .venv/bin/python -m pip install -r requirements-sync.txt
 .venv/bin/python -B scripts/sync_externals.py update
-.venv/bin/python -B scripts/sync_externals.py check
+.venv/bin/python -B scripts/sync_externals.py check --history
 ```
 
 只修改中文介紹與試用狀態時，離線更新表格：

@@ -13,9 +13,10 @@
 ## 外部專案同步
 
 - `external/` 僅同步上游，完整保留追蹤範圍內的路徑、檔案內容與可執行權限。不要手動改寫、格式化、翻譯、重新分類或抽出其中的 Skills、Agents、文件、資源及外掛設定。
+- 用 Git fetch 取得外部來源，並以 merge commit 保留 agent-skills 原有歷史與各來源的原始提交 SHA。同步 PR 使用 **Create a merge commit** 合併，讓上游歷史進入預設分支。
 - pstack 的 `agents/` 與 `skills/` 保留在 `external/pstack/` 內，不搬到本專案根目錄。上游新增、刪除或搬移檔案時，由同步工具反映該版本的結構。
 - 同步來源與人工維護的收藏資訊由 `externals.yaml` 管理；`externals.lock.json` 與 README 的 `EXTERNALS:START`／`EXTERNALS:END` 區塊由同步工具維護，不手動修改生成內容或 lock 來繞過校驗。
-- 更新上游使用 `scripts/sync_externals.py update`；只更新收藏介紹或試用狀態時使用 `render`。操作後執行 `check`；本機副本有手動修改或同步失敗時，依同步文件處理並保留既有內容。
+- 從乾淨的 Git 工作目錄執行 `scripts/sync_externals.py update`，建立同步提交後執行 `check --history`。只更新收藏介紹或試用狀態時使用 `render`，再執行 `check`。本機副本有手動修改或同步失敗時，依同步文件處理並保留既有內容。
 - 外部內容的收錄與實際安裝分開處理。同步不執行上游程式、不自動安裝技能或相依工具，也不自動改變試用狀態。
 - 沿用目前的每週排程、版本鎖定與更新 PR 流程；調整收錄規範時，不連帶修改來源、lock、排程或 PR 行為。
 

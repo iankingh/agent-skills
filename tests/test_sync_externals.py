@@ -1,14 +1,11 @@
-"""Exercise source updates using local archives; never execute downloaded code."""
+"""Exercise synchronization with local Git repositories."""
 
 import copy
 import hashlib
 import importlib.util
-import io
-import json
 from pathlib import Path
 import subprocess
 import sys
-import tarfile
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -22,49 +19,36 @@ sync = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(sync)
 
 
-def archive(files, special=None):
-    output = io.BytesIO()
-    with tarfile.open(fileobj=output, mode='w:gz') as tar:
-        root = tarfile.TarInfo('source-commit/')
-        root.type = tarfile.DIRTYPE
-        tar.addfile(root)
-        for path, value in files.items():
-            data, mode = value if isinstance(value, tuple) else (value, 0o644)
-            member = tarfile.TarInfo('source-commit/' + path)
-            member.size, member.mode = len(data), mode
-            tar.addfile(member, io.BytesIO(data))
-        if special:
-            tar.addfile(special)
-    return output.getvalue()
+def git(root, *args):
+    return subprocess.run(
+        ['git', '-c', 'core.hooksPath=/dev/null', '-c', 'core.autocrlf=false', *args],
+        cwd=root, check=True, capture_output=True, text=True,
+    ).stdout.strip()
 
 
-class FixtureGitHub:
-    def __init__(self):
-        self.commits = {'alpha': 'a' * 40, 'beta': 'b' * 40}
-        self.files = {
-            'alpha': {'README.md': b'alpha readme\n', 'SKILL.md': b'alpha skill\n',
-                      'LICENSE': b'fixture license\n', 'old.txt': b'old\n'},
-            'beta': {'plugin/README.md': b'beta readme\n', 'plugin/skills/demo/SKILL.md': b'demo\n',
-                     'plugin/assets/icon.bin': b'\x00\xff\x01',
-                     'plugin/install.sh': (b'#!/bin/sh\ntouch should-not-run\n', 0o755),
-                     'plugin/.cursor-plugin/plugin.json': b'{"name":"beta"}\n',
-                     'other-plugin/SKILL.md': b'must not be copied\n',
-                     'plugin-extra/README.md': b'also excluded\n'}}
-        self.downloads = []
+def init_repo(root):
+    root.mkdir(exist_ok=True)
+    git(root, 'init', '-b', 'main')
+    git(root, 'config', 'user.name', 'Fixture author')
+    git(root, 'config', 'user.email', 'fixture@example.test')
 
-    def latest(self, source):
-        return self.commits[source['name']], '2026-10-31T01:00:00Z'
 
-    def archive(self, source, commit):
-        self.downloads.append(source['name'])
-        return archive(self.files[source['name']])
+def save_files(root, files):
+    for name, value in files.items():
+        path = root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        data, mode = value if isinstance(value, tuple) else (value, 0o644)
+        path.write_bytes(data)
+        path.chmod(mode)
 
 
 class SyncTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='test-external-sync-')
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name) / 'agent-skills'
+        init_repo(self.root)
+        git(self.root, 'config', 'protocol.file.allow', 'always')
         self.manifest = {'version': 1, 'sources': [
             {'name': 'alpha', 'repository': 'example/alpha', 'ref': 'main', 'path': '.',
              'required_files': ['README.md', 'SKILL.md'], 'description': '用途 A',
@@ -75,21 +59,54 @@ class SyncTests(unittest.TestCase):
         self.save_manifest()
         self.readme = '人工維護的開頭\n\n' + sync.START + '\nold table\n' + sync.END + '\n\n人工維護的結尾\n'
         (self.root / 'README.md').write_text(self.readme)
-        self.client = FixtureGitHub()
+        save_files(self.root, {'skills/local/SKILL.md': b'local skill\n'})
+        self.base = self.commit(self.root, 'Own skills')
+        self.upstreams = {}
+        for source, files in zip(self.manifest['sources'], (
+            {'README.md': b'alpha readme\n', 'SKILL.md': b'alpha skill\n',
+             'LICENSE': b'fixture license\n', 'old.txt': b'old\n'},
+            {'plugin/README.md': b'beta readme\n', 'plugin/skills/demo/SKILL.md': b'demo\n',
+             'plugin/assets/icon.bin': b'\x00\xff\x01',
+             'plugin/install.sh': (b'#!/bin/sh\ntouch should-not-run\n', 0o755),
+             'plugin/.cursor-plugin/plugin.json': b'{"name":"beta"}\n',
+             'plugin/.gitignore': b'assets/\n',
+             'plugin/.gitattributes': b'assets/icon.bin export-ignore\n',
+             'other-plugin/SKILL.md': b'must not be copied\n',
+             'plugin-extra/README.md': b'also excluded\n'},
+        )):
+            upstream = Path(self.temp.name) / source['name']
+            init_repo(upstream)
+            git(upstream, 'commit', '--allow-empty', '-m', 'Upstream root')
+            save_files(upstream, files)
+            self.commit(upstream, 'Add skills')
+            self.upstreams[source['name']] = upstream
+            git(self.root, 'config', f'url.{upstream.as_uri()}.insteadOf',
+                f'https://github.com/{source["repository"]}.git')
+
+    def commit(self, root, message):
+        git(root, 'add', '--force', '--all')
+        git(root, 'commit', '-m', message)
+        return git(root, 'rev-parse', 'HEAD')
+
+    def update_upstream(self, name, files):
+        upstream = self.upstreams[name]
+        save_files(upstream, files)
+        return self.commit(upstream, 'Update skills')
 
     def save_manifest(self):
         (self.root / 'externals.yaml').write_text(yaml.safe_dump(self.manifest, allow_unicode=True, sort_keys=False))
 
     def state(self):
-        return {p.relative_to(self.root).as_posix(): (p.read_bytes(), bool(p.stat().st_mode & 0o111))
-                for p in self.root.rglob('*') if p.is_file()}
+        files = {p.relative_to(self.root).as_posix(): (p.read_bytes(), bool(p.stat().st_mode & 0o111))
+                 for p in self.root.rglob('*') if p.is_file() and '.git' not in p.relative_to(self.root).parts}
+        return git(self.root, 'rev-parse', 'HEAD'), files
 
     def bootstrap(self):
-        return sync.update(self.root, self.client)
+        return sync.update(self.root)
 
     def test_initial_sync_copies_full_selected_tree_and_preserves_bytes_modes(self):
         body = self.bootstrap()
-        lock = sync.check(self.root)
+        lock = sync.check(self.root, history=True)
         self.assertEqual(set(lock['sources']), {'alpha', 'beta'})
         self.assertEqual((self.root / 'external/beta/assets/icon.bin').read_bytes(), b'\x00\xff\x01')
         self.assertTrue((self.root / 'external/beta/install.sh').stat().st_mode & 0o111)
@@ -98,29 +115,37 @@ class SyncTests(unittest.TestCase):
         self.assertFalse((self.root / 'external/beta/plugin-extra').exists())
         self.assertEqual(lock['sources']['alpha']['files']['SKILL.md']['sha256'], hashlib.sha256(b'alpha skill\n').hexdigest())
         self.assertIn('新增 4', body)
+        commits = [git(upstream, 'rev-parse', 'HEAD') for upstream in self.upstreams.values()]
+        self.assertEqual(git(self.root, 'show', '-s', '--format=%P').split(), [self.base, *commits])
+        self.assertEqual(git(self.root, 'rev-parse', 'HEAD^1'), self.base)
+        for upstream, commit in zip(self.upstreams.values(), commits):
+            self.assertEqual(git(self.root, 'show', '-s', '--format=%an <%ae>', commit),
+                             git(upstream, 'show', '-s', '--format=%an <%ae>', commit))
+            git(self.root, 'merge-base', '--is-ancestor', f'{commit}^', 'HEAD')
+        self.assertEqual(git(self.root, 'diff', self.base, 'HEAD', '--', 'skills'), '')
         self.assertTrue((self.root / 'README.md').read_text().startswith('人工維護的開頭'))
         self.assertTrue((self.root / 'README.md').read_text().endswith('人工維護的結尾\n'))
 
-    def test_unchanged_upstream_produces_no_file_diff_or_repeat_download(self):
+    def test_unchanged_upstream_produces_no_file_diff_or_commit(self):
         self.bootstrap()
         before = self.state()
-        self.client.downloads.clear()
-        body = sync.update(self.root, self.client)
+        body = self.bootstrap()
         self.assertEqual(before, self.state())
-        self.assertEqual(self.client.downloads, [])
         self.assertIn('沒有變更', body)
 
     def test_update_replaces_modifications_additions_and_upstream_deletions(self):
         self.bootstrap()
-        self.client.commits['alpha'] = 'c' * 40
-        self.client.files['alpha']['SKILL.md'] = b'new skill\n'
-        self.client.files['alpha']['references/guide.md'] = b'guide\n'
-        del self.client.files['alpha']['old.txt']
-        body = sync.update(self.root, self.client)
+        previous = git(self.upstreams['alpha'], 'rev-parse', 'HEAD')
+        (self.upstreams['alpha'] / 'old.txt').unlink()
+        latest = self.update_upstream('alpha', {
+            'SKILL.md': b'new skill\n',
+            'references/guide.md': b'guide\n',
+        })
+        body = self.bootstrap()
         self.assertEqual((self.root / 'external/alpha/SKILL.md').read_bytes(), b'new skill\n')
         self.assertTrue((self.root / 'external/alpha/references/guide.md').exists())
         self.assertFalse((self.root / 'external/alpha/old.txt').exists())
-        self.assertIn('/compare/' + 'a' * 40 + '...' + 'c' * 40, body)
+        self.assertIn(f'/compare/{previous}...{latest}', body)
         self.assertIn('新增 1、修改 1、刪除 1', body)
         sync.check(self.root)
 
@@ -128,10 +153,10 @@ class SyncTests(unittest.TestCase):
         self.bootstrap()
         target = self.root / 'external/alpha/SKILL.md'
         target.write_text('local work\n')
-        self.client.latest = lambda _: self.fail('Network must not run with local changes')
         before = self.state()
-        with self.assertRaisesRegex(ValueError, 'local snapshot differs'):
-            sync.update(self.root, self.client)
+        with patch.object(sync.Git, 'latest', side_effect=AssertionError('Unexpected fetch')):
+            with self.assertRaisesRegex(ValueError, 'local snapshot differs'):
+                self.bootstrap()
         self.assertEqual(before, self.state())
 
     def test_added_local_file_or_missing_file_fails_offline_check(self):
@@ -163,72 +188,63 @@ class SyncTests(unittest.TestCase):
             self.bootstrap()
         self.assertEqual(before, self.state())
 
-    def test_network_failure_leaves_all_existing_sources_intact(self):
+    def test_fetch_failure_leaves_all_existing_sources_intact(self):
         self.bootstrap()
-        self.client.commits = {'alpha': 'c' * 40, 'beta': 'd' * 40}
-        download = self.client.archive
-        def fail_second(source, commit):
-            if source['name'] == 'beta':
-                raise OSError('download failed')
-            return download(source, commit)
-        self.client.archive = fail_second
+        self.update_upstream('alpha', {'SKILL.md': b'new upstream version\n'})
+        self.upstreams['beta'].rename(self.upstreams['beta'].with_name('moved'))
         before = self.state()
-        with self.assertRaisesRegex(OSError, 'download failed'):
-            sync.update(self.root, self.client)
+        with self.assertRaisesRegex(ValueError, 'fetch'):
+            self.bootstrap()
         self.assertEqual(before, self.state())
-        self.assertEqual(list(self.root.glob('.external-sync-*')), [])
 
-    def test_local_edit_during_download_is_preserved(self):
+    def test_edits_during_fetch_are_preserved(self):
         self.bootstrap()
-        self.client.commits['alpha'] = 'c' * 40
-        download = self.client.archive
-        def edit_during_download(source, commit):
-            (self.root / 'external/alpha/SKILL.md').write_text('concurrent local edit\n')
-            return download(source, commit)
-        self.client.archive = edit_during_download
-        old_lock = (self.root / 'externals.lock.json').read_bytes()
-        with self.assertRaisesRegex(ValueError, 'local snapshot differs'):
-            sync.update(self.root, self.client)
-        self.assertEqual((self.root / 'external/alpha/SKILL.md').read_text(), 'concurrent local edit\n')
-        self.assertEqual((self.root / 'externals.lock.json').read_bytes(), old_lock)
+        self.update_upstream('alpha', {'SKILL.md': b'new upstream version\n'})
+        fetch = sync.Git.latest
+        for name, pattern in [('external/alpha/SKILL.md', 'local snapshot differs'),
+                              ('README.md', 'clean Git working tree')]:
+            with self.subTest(name=name):
+                target = self.root / name
+                original = target.read_bytes()
+                old_lock = (self.root / 'externals.lock.json').read_bytes()
+                old_head = git(self.root, 'rev-parse', 'HEAD')
 
-    def test_readme_edit_during_download_is_preserved(self):
-        self.bootstrap()
-        self.client.commits['alpha'] = 'c' * 40
-        download = self.client.archive
-        def edit_during_download(source, commit):
-            path = self.root / 'README.md'
-            path.write_text(path.read_text() + '\nconcurrent note\n')
-            return download(source, commit)
-        self.client.archive = edit_during_download
-        old_lock = (self.root / 'externals.lock.json').read_bytes()
-        with self.assertRaisesRegex(ValueError, 'README changed'):
-            sync.update(self.root, self.client)
-        self.assertTrue((self.root / 'README.md').read_text().endswith('concurrent note\n'))
-        self.assertEqual((self.root / 'externals.lock.json').read_bytes(), old_lock)
+                def edit_during_fetch(client, source):
+                    target.write_bytes(b'concurrent local edit\n')
+                    return fetch(client, source)
+
+                with patch.object(sync.Git, 'latest', edit_during_fetch):
+                    with self.assertRaisesRegex(ValueError, pattern):
+                        self.bootstrap()
+                self.assertEqual(target.read_bytes(), b'concurrent local edit\n')
+                self.assertEqual((self.root / 'externals.lock.json').read_bytes(), old_lock)
+                self.assertEqual(git(self.root, 'rev-parse', 'HEAD'), old_head)
+                target.write_bytes(original)
 
     def test_missing_required_file_preserves_previous_snapshot(self):
         self.bootstrap()
-        self.client.commits['beta'] = 'd' * 40
-        del self.client.files['beta']['plugin/skills/demo/SKILL.md']
+        upstream = self.upstreams['beta']
+        (upstream / 'plugin/skills/demo/SKILL.md').unlink()
+        self.commit(upstream, 'Remove required file')
         before = self.state()
         with self.assertRaisesRegex(ValueError, 'required_files'):
-            sync.update(self.root, self.client)
+            self.bootstrap()
         self.assertEqual(before, self.state())
 
-    def test_write_failure_rolls_back_sources_lock_and_readme(self):
+    def test_commit_failure_does_not_replace_sources_lock_or_readme(self):
         self.bootstrap()
-        self.client.commits = {'alpha': 'c' * 40, 'beta': 'd' * 40}
-        self.client.files['alpha']['SKILL.md'] = b'new\n'
+        self.update_upstream('alpha', {'SKILL.md': b'new\n'})
         before = self.state()
-        write = sync.write_if_changed
-        def fail_readme(path, text):
-            if path.name == 'README.md':
-                raise OSError('simulated write failure')
-            write(path, text)
-        with patch.object(sync, 'write_if_changed', side_effect=fail_readme):
-            with self.assertRaisesRegex(OSError, 'simulated write failure'):
-                sync.update(self.root, self.client)
+        run = sync.Git.run
+
+        def fail_commit(client, command, *args, **kwargs):
+            if command == 'commit-tree':
+                raise OSError('simulated commit failure')
+            return run(client, command, *args, **kwargs)
+
+        with patch.object(sync.Git, 'run', fail_commit):
+            with self.assertRaisesRegex(OSError, 'simulated commit failure'):
+                self.bootstrap()
         self.assertEqual(before, self.state())
 
     def test_manifest_text_edits_render_without_overwriting_human_sections(self):
@@ -248,9 +264,12 @@ class SyncTests(unittest.TestCase):
 
     def test_removed_manifest_source_removes_only_its_managed_snapshot(self):
         self.bootstrap()
+        removed = git(self.upstreams['beta'], 'rev-parse', 'HEAD')
         self.manifest['sources'].pop()
         self.save_manifest()
-        body = sync.update(self.root, self.client)
+        self.commit(self.root, 'Remove beta from manifest')
+        body = self.bootstrap()
+        git(self.root, 'merge-base', '--is-ancestor', removed, 'HEAD')
         self.assertFalse((self.root / 'external/beta').exists())
         self.assertTrue((self.root / 'external/alpha/SKILL.md').exists())
         self.assertIn('依來源清單移除', body)
@@ -258,7 +277,7 @@ class SyncTests(unittest.TestCase):
 
     def test_invalid_manifest_paths_names_and_duplicates_are_rejected(self):
         original = copy.deepcopy(self.manifest)
-        for field, value in [('path', '../escape'), ('path', '/absolute'), ('name', '../alpha'),
+        for field, value in [('path', '../escape'), ('path', '/absolute'), ('path', '.git/test'), ('name', '../alpha'),
                              ('repository', 'https://example.com/a'), ('required_files', ['../bad']),
                              ('description', 'line\nbreak')]:
             with self.subTest(field=field, value=value):
@@ -273,31 +292,33 @@ class SyncTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Duplicate'):
             sync.load_manifest(self.root)
 
-    def test_archive_path_traversal_links_special_files_and_duplicate_files_fail(self):
-        for path, kind in [('source-commit/../escape', tarfile.REGTYPE), ('/absolute', tarfile.REGTYPE),
-                           ('source-commit/link', tarfile.SYMTYPE), ('source-commit/hard', tarfile.LNKTYPE),
-                           ('source-commit/fifo', tarfile.FIFOTYPE), ('source-commit/.git/config', tarfile.REGTYPE),
-                           ('source-commit/README.md', tarfile.REGTYPE)]:
-            with self.subTest(path=path, kind=kind), tempfile.TemporaryDirectory() as folder:
-                member = tarfile.TarInfo(path)
-                member.type, member.linkname = kind, '/outside'
-                payload = archive({'README.md': b'readme\n'}, special=member)
-                with self.assertRaises(ValueError):
-                    sync.unpack(payload, '.', Path(folder) / 'out')
+    def test_links_and_gitlinks_in_upstream_tree_are_rejected(self):
+        self.bootstrap()
+        upstream = self.upstreams['alpha']
+        (upstream / 'link').symlink_to('/outside')
+        self.commit(upstream, 'Add symbolic link')
+        before = self.state()
+        with self.assertRaisesRegex(ValueError, 'link or special file'):
+            self.bootstrap()
+        self.assertEqual(before, self.state())
 
-    def test_empty_or_wrong_subtree_and_malformed_archive_fail(self):
-        with self.assertRaisesRegex(ValueError, 'no files'):
-            sync.unpack(archive({'other/README.md': b'x'}), 'plugin', self.root / 'wrong')
-        with self.assertRaises(tarfile.TarError):
-            sync.unpack(b'not a gzip file', '.', self.root / 'bad')
+        (upstream / 'link').unlink()
+        git(upstream, 'add', '--all')
+        commit = git(self.upstreams['beta'], 'rev-parse', 'HEAD')
+        git(upstream, 'update-index', '--add', '--cacheinfo', f'160000,{commit},gitlink')
+        git(upstream, 'commit', '-m', 'Add Git submodule entry')
+        with self.assertRaisesRegex(ValueError, 'link or special file'):
+            self.bootstrap()
+        self.assertEqual(before, self.state())
 
     def test_missing_readme_markers_stops_before_replacing_existing_files(self):
         self.bootstrap()
         (self.root / 'README.md').write_text('no markers\n')
+        self.commit(self.root, 'Remove generated table markers')
         before = self.state()
-        self.client.commits['alpha'] = 'c' * 40
+        self.update_upstream('alpha', {'SKILL.md': b'new\n'})
         with self.assertRaisesRegex(ValueError, 'marker pair'):
-            sync.update(self.root, self.client)
+            self.bootstrap()
         self.assertEqual(before, self.state())
 
     def test_offline_cli_check_fails_on_corruption(self):
@@ -309,33 +330,32 @@ class SyncTests(unittest.TestCase):
         self.assertNotEqual(failed.returncode, 0)
         self.assertIn('local snapshot differs', failed.stderr)
 
-    def test_latest_commit_query_filters_monorepo_path(self):
-        client = sync.GitHub()
-        urls = []
-        def read(url):
-            urls.append(url)
-            return json.dumps([{'sha': 'a' * 40, 'commit': {'committer': {'date': '2026-10-31T00:00:00Z'}}}]).encode()
-        client.read = read
-        sources = sync.load_manifest(self.root)
-        client.latest(sources[0])
-        client.latest(sources[1])
-        self.assertNotIn('path=', urls[0])
-        self.assertIn('path=plugin', urls[1])
-        self.assertIn('sha=main', urls[1])
+    def test_latest_commit_ignores_changes_outside_monorepo_path(self):
+        self.bootstrap()
+        before = self.state()
+        unrelated = self.update_upstream('beta', {'other-plugin/SKILL.md': b'outside plugin\n'})
+        self.bootstrap()
+        self.assertEqual(before, self.state())
+        self.assertFalse(sync.Git(self.root).ancestor(unrelated, 'HEAD'))
 
-    def test_http_errors_and_empty_commit_results_are_not_success(self):
-        client = sync.GitHub()
-        source = sync.load_manifest(self.root)[0]
-        for payload in [[], {'message': 'API rate limit exceeded'}, [{'sha': 'invalid'}]]:
-            with self.subTest(payload=payload):
-                client.read = lambda _, data=payload: json.dumps(data).encode()
-                with self.assertRaises(ValueError):
-                    client.latest(source)
+    def test_unchanged_legacy_snapshot_imports_history_and_survives_a_fresh_clone(self):
+        self.bootstrap()
+        git(self.root, 'reset', '--soft', self.base)
+        legacy = self.commit(self.root, 'Legacy snapshot without upstream parents')
+        with self.assertRaisesRegex(ValueError, 'not in the synchronization history'):
+            sync.check(self.root, history=True)
 
-    def test_archive_limits_fail_before_installing(self):
+        self.assertIn('納入 Git 歷史', self.bootstrap())
+        self.assertEqual(git(self.root, 'diff', legacy, 'HEAD'), '')
+        self.assertEqual(git(self.root, 'rev-parse', 'HEAD^1'), legacy)
+        clone = Path(self.temp.name) / 'fresh-clone'
+        git(self.root, 'clone', '--no-local', str(self.root), str(clone))
+        sync.check(clone, history=True)
+
+    def test_selected_file_limit_fails_before_installing(self):
         with patch.object(sync, 'MAX_CONTENT', 2):
             with self.assertRaisesRegex(ValueError, 'extraction limit'):
-                sync.unpack(archive({'README.md': b'long data'}), '.', self.root / 'limited')
+                self.bootstrap()
 
 
 class WorkflowTests(unittest.TestCase):
@@ -359,11 +379,12 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn('workflow_dispatch', workflow['on'])
         self.assertEqual(workflow['permissions'], {'contents': 'write', 'pull-requests': 'write'})
         steps = workflow['jobs']['sync']['steps']
-        check_index = next(i for i, step in enumerate(steps) if step.get('run') == 'python -B scripts/sync_externals.py check')
-        publish_index = next(i for i, step in enumerate(steps) if step.get('uses', '').startswith('peter-evans/create-pull-request@'))
+        check_index = next(i for i, step in enumerate(steps) if step.get('run') == 'python -B scripts/sync_externals.py check --history')
+        publish_index = next(i for i, step in enumerate(steps) if 'origin_git push' in step.get('run', ''))
         self.assertLess(check_index, publish_index)
-        self.assertEqual(steps[publish_index]['with']['branch'], 'codex/sync-external-skills')
-        self.assertEqual(set(steps[publish_index]['with']['add-paths'].split()), {'external/', 'externals.lock.json', 'README.md'})
+        self.assertEqual(steps[publish_index]['env']['SYNC_BRANCH'], 'codex/sync-external-skills')
+        self.assertEqual(steps[0]['with']['fetch-depth'], '0')
+        self.assertIn('origin "HEAD:$sync_ref"', steps[publish_index]['run'])
 
 
 if __name__ == '__main__':

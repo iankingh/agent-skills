@@ -3,18 +3,16 @@
 
 import argparse
 from collections import Counter
+from datetime import datetime, timezone
 import hashlib
-import io
+from io import BytesIO
 import json
 import os
 from pathlib import Path, PurePosixPath
 import re
-import shutil
+import subprocess
 import sys
-import tarfile
 import tempfile
-from urllib.parse import urlencode, urlsplit
-from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 import yaml
 
@@ -22,7 +20,6 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 START = '<!-- EXTERNALS:START -->'
 END = '<!-- EXTERNALS:END -->'
-MAX_ARCHIVE = 256 * 1024 * 1024
 MAX_CONTENT = 256 * 1024 * 1024
 SHA = re.compile(r'[0-9a-f]{40}')
 
@@ -31,7 +28,7 @@ def relative_path(value, allow_root=False):
     if not isinstance(value, str) or not value or '\\' in value:
         raise ValueError(f'Invalid relative path: {value!r}')
     path = PurePosixPath(value)
-    if path.is_absolute() or '..' in path.parts or any(ord(c) < 32 for c in value):
+    if path.is_absolute() or any(part.lower() in ('..', '.git') for part in path.parts) or any(ord(c) < 32 for c in value):
         raise ValueError(f'Unsafe relative path: {value!r}')
     if str(path) == '.' and not allow_root:
         raise ValueError('A file path must not be the root directory')
@@ -108,81 +105,89 @@ def verify_snapshots(root, lock):
             raise ValueError(f'{name}: local snapshot differs from its lock; preserve your edits before updating')
 
 
-class SameHostRedirect(HTTPRedirectHandler):
-    def redirect_request(self, request, fp, code, msg, headers, newurl):
-        if (urlsplit(newurl).scheme, urlsplit(newurl).hostname) != ('https', urlsplit(request.full_url).hostname):
-            raise ValueError('Refusing a cross-host or non-HTTPS download redirect')
-        return super().redirect_request(request, fp, code, msg, headers, newurl)
+class Git:
+    def __init__(self, root, index=None):
+        self.root = root
+        self.env = dict(os.environ, GIT_TERMINAL_PROMPT='0', GIT_NO_REPLACE_OBJECTS='1')
+        if index is not None:
+            self.env['GIT_INDEX_FILE'] = str(index)
 
+    def run(self, *args, data=None, ok=(0,)):
+        result = subprocess.run(
+            ['git', '-c', 'core.hooksPath=/dev/null', '-c', 'core.autocrlf=false',
+             '-c', 'core.filemode=true', '-c', 'submodule.recurse=false',
+             '-c', 'credential.helper=', *args],
+            cwd=self.root, env=self.env, input=data, capture_output=True,
+        )
+        if result.returncode not in ok:
+            message = result.stderr or result.stdout
+            raise ValueError(f'git {args[0]}: {message.decode(errors="replace").strip()}')
+        return result
 
-class GitHub:
-    def read(self, url):
-        host = urlsplit(url).hostname
-        if urlsplit(url).scheme != 'https' or host not in ('api.github.com', 'codeload.github.com'):
-            raise ValueError('Only GitHub API and codeload HTTPS URLs are supported')
-        headers = {'User-Agent': 'agent-skills-external-sync', 'Accept': 'application/vnd.github+json'}
-        token = os.environ.get('GH_TOKEN')
-        if token and host == 'api.github.com':
-            headers['Authorization'] = f'Bearer {token}'
-        with build_opener(SameHostRedirect()).open(Request(url, headers=headers), timeout=90) as response:
-            data = response.read(MAX_ARCHIVE + 1)
-        if len(data) > MAX_ARCHIVE:
-            raise ValueError('Upstream response exceeds the download limit')
-        return data
+    def text(self, *args):
+        return self.run(*args).stdout.decode().strip()
+
+    def ancestor(self, commit, head):
+        if self.run('cat-file', '-e', f'{commit}^{{commit}}', ok=(0, 1, 128)).returncode:
+            return False
+        result = self.run('merge-base', '--is-ancestor', commit, head, ok=(0, 1))
+        return result.returncode == 0
 
     def latest(self, source):
-        query = {'sha': source['ref'], 'per_page': 1}
+        branch = f'refs/heads/{source["ref"]}'
+        self.run('check-ref-format', branch)
+        ref = f'refs/externals/{source["name"]}'
+        url = f'https://github.com/{source["repository"]}.git'
+        self.run('fetch', '--no-tags', '--no-recurse-submodules', '--no-write-fetch-head',
+                 '--', url, f'+{branch}:{ref}')
+        args = ['log', '-1', '--format=%H%n%cI', ref]
         if source['path'] != '.':
-            query['path'] = source['path']
-        url = f'https://api.github.com/repos/{source["repository"]}/commits?{urlencode(query)}'
-        commits = json.loads(self.read(url))
-        if not isinstance(commits, list) or not commits or not SHA.fullmatch(commits[0].get('sha', '')):
+            args.extend(['--', f':(top,literal){source["path"]}'])
+        version = self.text(*args).splitlines()
+        if len(version) != 2 or not SHA.fullmatch(version[0]):
             raise ValueError(f'{source["name"]}: no upstream commit found for the configured branch/path')
-        return commits[0]['sha'], commits[0]['commit']['committer']['date']
+        commit, date = version
+        committed_at = datetime.fromisoformat(date).astimezone(timezone.utc)
+        return commit, committed_at.isoformat().replace('+00:00', 'Z')
 
-    def archive(self, source, commit):
-        return self.read(f'https://codeload.github.com/{source["repository"]}/tar.gz/{commit}')
+    def tree(self, commit, path):
+        spec = f'{commit}^{{tree}}' if path == '.' else f'{commit}:{path}'
+        tree = self.text('rev-parse', '--verify', spec)
+        if self.text('cat-file', '-t', tree) != 'tree':
+            raise ValueError(f'Configured source must be a directory: {path}')
+        return tree
 
+    def files(self, tree):
+        entries = []
+        for record in self.run('ls-tree', '-rlz', tree).stdout.split(b'\0')[:-1]:
+            metadata, raw_name = record.split(b'\t', 1)
+            mode, kind, blob, size = metadata.split()
+            name = relative_path(raw_name.decode())
+            if kind != b'blob' or mode not in (b'100644', b'100755'):
+                raise ValueError(f'Unsupported upstream link or special file: {name}')
+            entries.append((name, mode, blob, int(size)))
+        if not entries:
+            raise ValueError('Configured subtree has no files')
+        if len(entries) > 10000 or sum(size for _, _, _, size in entries) > MAX_CONTENT:
+            raise ValueError('Selected upstream files exceed the extraction limit')
 
-def unpack(archive, source_path, destination):
-    """Extract only regular files in the configured subtree, never archive links."""
-    selected = () if source_path == '.' else PurePosixPath(source_path).parts
-    destination.mkdir()
-    seen, total, roots = set(), 0, set()
-    with tarfile.open(fileobj=io.BytesIO(archive), mode='r:gz') as tar:
-        for member in tar:
-            relative_path(member.name)
-            parts = PurePosixPath(member.name).parts
-            roots.add(parts[0])
-            if len(roots) != 1:
-                raise ValueError('Archive must have a single repository root')
-            inside = parts[1:]
-            if inside[:len(selected)] != selected:
-                continue
-            relative = inside[len(selected):]
-            if not relative:
-                if not member.isdir():
-                    raise ValueError('Configured source must be a directory')
-                continue
-            if member.isdir():
-                continue
-            if not member.isfile():
-                raise ValueError(f'Unsupported archive link or special file: {member.name}')
-            name = relative_path('/'.join(relative))
-            if name in seen or '.git' in relative:
-                raise ValueError(f'Duplicate or reserved archive path: {name}')
-            seen.add(name)
-            total += member.size
-            if total > MAX_CONTENT or len(seen) > 10000:
-                raise ValueError('Selected upstream files exceed the extraction limit')
-            path = destination / name
-            path.parent.mkdir(parents=True, exist_ok=True)
-            with tar.extractfile(member) as stream:
-                path.write_bytes(stream.read())
-            path.chmod(0o755 if member.mode & 0o111 else 0o644)
-    if not seen:
-        raise ValueError(f'Configured subtree has no files: {source_path}')
-    return inventory(destination)
+        # Read raw blobs so Git attributes cannot omit files or substitute their contents.
+        data = b''.join(blob + b'\n' for _, _, blob, _ in entries)
+        output = BytesIO(self.run('cat-file', '--batch', data=data).stdout)
+        files = {}
+        for name, mode, blob, size in entries:
+            if output.readline().split() != [blob, b'blob', str(size).encode()]:
+                raise ValueError(f'Cannot read upstream blob for {name}')
+            content = output.read(size)
+            if len(content) != size or output.read(1) != b'\n':
+                raise ValueError(f'Incomplete upstream blob for {name}')
+            files[name] = {'sha256': hashlib.sha256(content).hexdigest(),
+                           'mode': mode[2:].decode()}
+        return files
+
+    def index_text(self, path, text):
+        blob = self.run('hash-object', '-w', '--stdin', data=text.encode()).stdout.strip().decode()
+        self.run('update-index', '--add', '--cacheinfo', f'100644,{blob},{path}')
 
 
 def table_cell(value):
@@ -208,7 +213,7 @@ def render_readme(text, sources, lock):
     return before + START + '\n\n' + '\n'.join(lines) + '\n\n' + END + after
 
 
-def check(root):
+def check(root, history=False):
     sources, lock = load_manifest(root), load_lock(root)
     if {s['name'] for s in sources} != set(lock['sources']):
         raise ValueError('Manifest and lock source names differ; run update')
@@ -222,7 +227,18 @@ def check(root):
     text = (root / 'README.md').read_text(encoding='utf-8')
     if render_readme(text, sources, lock) != text:
         raise ValueError('Generated README table is stale; run render')
+    if history:
+        verify_history(Git(root), 'HEAD', lock)
     return lock
+
+
+def verify_history(git, head, lock):
+    for name, entry in lock['sources'].items():
+        commit = entry['commit']
+        if not git.ancestor(commit, head):
+            raise ValueError(f'{name}: upstream {commit} is not in the synchronization history')
+        if git.tree(commit, entry['path']) != git.tree(head, f'external/{name}'):
+            raise ValueError(f'{name}: committed snapshot does not match upstream {commit}')
 
 
 def write_if_changed(path, text):
@@ -230,8 +246,8 @@ def write_if_changed(path, text):
         path.write_text(text, encoding='utf-8')
 
 
-def report(updates):
-    lines = ['## 外部專案來源同步', '', '同步完整來源檔案；中文介紹與試用狀態沿用 externals.yaml，未執行上游程式。', '']
+def report(updates, imports):
+    lines = ['## 外部專案來源同步', '', '保留上游原始 Git 提交。請使用 **Create a merge commit** 合併此 PR，讓上游提交進入預設分支歷史。', '']
     for item in updates:
         name, old, new = item['name'], item['old'], item['new']
         repo = new['repository'] if new else old['repository']
@@ -239,7 +255,7 @@ def report(updates):
         if new is None:
             lines.append(f'- **{name}**：依來源清單移除同步副本。')
         else:
-            link = f'{base}/compare/{old["commit"]}...{new["commit"]}' if old and old['repository'] == repo else f'{base}/tree/{new["commit"]}'
+            link = f'{base}/compare/{old["commit"]}...{new["commit"]}' if old and old['repository'] == repo else f'{base}/commit/{new["commit"]}'
             before = old['files'] if old else {}
             after = new['files']
             added, deleted = set(after) - set(before), set(before) - set(after)
@@ -247,87 +263,101 @@ def report(updates):
             lines.append(f'- **{name}**：[{new["commit"][:7]}]({link})；新增 {len(added)}、修改 {len(modified)}、刪除 {len(deleted)} 個檔案。')
     if not updates:
         lines.append('- 上游來源版本沒有變更。')
+    histories = [name for name, _ in imports]
+    if histories:
+        lines.append(f"- 納入 Git 歷史：{', '.join(histories)}。")
     return '\n'.join(lines) + '\n'
 
 
-def update(root, client=None):
+def update(root):
     sources, old_lock = load_manifest(root), load_lock(root)
-    verify_snapshots(root, old_lock)
+    verify_destinations(root, sources, old_lock)
+
+    git = Git(root)
+    if Path(git.text('rev-parse', '--show-toplevel')).resolve() != root.resolve():
+        raise ValueError('Update must run from the root of the agent-skills Git repository')
+    if git.text('rev-parse', '--is-shallow-repository') == 'true':
+        raise ValueError('Fetch the full repository history before running update')
+    head = git.text('rev-parse', 'HEAD')
+    require_clean(git, head)
     readme = (root / 'README.md').read_text(encoding='utf-8')
-    client = client or GitHub()
     new_lock = {'version': 1, 'sources': {}}
-    updates = []
-    (root / 'external').mkdir(exist_ok=True)
+    updates, imports, trees = [], [], {}
     for source in sources:
-        destination = root / 'external' / source['name']
-        if source['name'] not in old_lock['sources'] and (destination.exists() or destination.is_symlink()):
+        name = source['name']
+        old = old_lock['sources'].get(name)
+        commit, committed_at = git.latest(source)
+        tree = git.tree(commit, source['path'])
+        trees[name] = tree
+        # Existing snapshots may have come from an archive that honors export attributes.
+        same_tree = (
+            old and old['commit'] == commit and
+            git.run('cat-file', '-e', f'{head}:external/{name}', ok=(0, 1, 128)).returncode == 0
+            and git.tree(head, f'external/{name}') == tree
+        )
+        files = old['files'] if same_tree else git.files(tree)
+        if not set(source['required_files']).issubset(files):
+            raise ValueError(f'{name}: upstream is missing required_files')
+        entry = {key: source[key] for key in ('repository', 'ref', 'path')}
+        entry.update(commit=commit, committed_at=committed_at, files=files)
+        new_lock['sources'][name] = entry
+        if old != entry:
+            updates.append({'name': name, 'old': old, 'new': entry})
+        if not git.ancestor(commit, head):
+            imports.append((name, commit))
+    for name, old in old_lock['sources'].items():
+        if name not in new_lock['sources']:
+            updates.append({'name': name, 'old': old, 'new': None})
+    new_readme = render_readme(readme, sources, new_lock)
+
+    # Compose and validate the entire commit before changing the working tree or branch.
+    with tempfile.TemporaryDirectory(prefix='external-sync-') as folder:
+        index = Git(root, index=Path(folder) / 'index')
+        index.run('read-tree', head)
+        managed = [f'external/{name}' for name in sorted(old_lock['sources'].keys() | trees.keys())]
+        tracked = index.run('ls-files', '-z', '--', *managed).stdout
+        if tracked:
+            index.run('update-index', '--force-remove', '-z', '--stdin', data=tracked)
+        for name, tree in trees.items():
+            index.run('read-tree', f'--prefix=external/{name}/', tree)
+        index.index_text('externals.lock.json', json.dumps(new_lock, ensure_ascii=False, indent=2) + '\n')
+        index.index_text('README.md', new_readme)
+        tree = index.text('write-tree')
+
+    if tree != git.tree(head, '.') or imports:
+        parents = [head, *dict.fromkeys(commit for _, commit in imports)]
+        parent_args = [arg for parent in parents for arg in ('-p', parent)]
+        candidate = git.text('commit-tree', tree, *parent_args, '-m', 'chore(externals): 同步外部專案來源')
+        verify_history(git, candidate, new_lock)
+        verify_destinations(root, sources, old_lock)
+        require_clean(git, head)
+        git.run('merge', '--ff-only', '--no-autostash', '--no-overwrite-ignore', candidate)
+    return report(updates, imports)
+
+
+def require_clean(git, head):
+    if git.text('rev-parse', 'HEAD') != head or git.text('status', '--porcelain', '--untracked-files=no'):
+        raise ValueError('Use a clean Git working tree to synchronize external sources')
+
+
+def verify_destinations(root, sources, lock):
+    verify_snapshots(root, lock)
+    for source in sources:
+        name = source['name']
+        destination = root / 'external' / name
+        if name not in lock['sources'] and (destination.exists() or destination.is_symlink()):
             raise ValueError(f'Refusing to overwrite an unmanaged directory: {destination}')
-    with tempfile.TemporaryDirectory(prefix='.external-sync-', dir=root) as folder:
-        stage = Path(folder)
-        for source in sources:
-            name = source['name']
-            old = old_lock['sources'].get(name)
-            commit, committed_at = client.latest(source)
-            if old and old['commit'] == commit and all(old.get(k) == source[k] for k in ('repository', 'ref', 'path')):
-                entry = old
-            else:
-                files = unpack(client.archive(source, commit), source['path'], stage / name)
-                if not set(source['required_files']).issubset(files):
-                    raise ValueError(f'{name}: upstream is missing required_files')
-                entry = {k: source[k] for k in ('repository', 'ref', 'path')}
-                entry.update(commit=commit, committed_at=committed_at, files=files)
-            new_lock['sources'][name] = entry
-            if old != entry:
-                updates.append({'name': name, 'old': old, 'new': entry})
-        for name, old in old_lock['sources'].items():
-            if name not in new_lock['sources']:
-                updates.append({'name': name, 'old': old, 'new': None})
-        new_readme = render_readme(readme, sources, new_lock)
-        # A download can take time; preserve edits made while it was in flight.
-        verify_snapshots(root, old_lock)
-        for source in sources:
-            destination = root / 'external' / source['name']
-            if source['name'] not in old_lock['sources'] and (destination.exists() or destination.is_symlink()):
-                raise ValueError(f'Refusing to overwrite an unmanaged directory: {destination}')
-        if (root / 'README.md').read_text(encoding='utf-8') != readme:
-            raise ValueError('README changed during download; rerun update to preserve the new text')
-        lock_path = root / 'externals.lock.json'
-        old_lock_bytes = lock_path.read_bytes() if lock_path.exists() else None
-        moved, installed = [], []
-        try:
-            for item in updates:
-                name = item['name']
-                destination = root / 'external' / name
-                if destination.exists():
-                    backup = stage / ('previous-' + name)
-                    destination.rename(backup)
-                    moved.append((backup, destination))
-                if item['new'] is not None:
-                    (stage / name).rename(destination)
-                    installed.append(destination)
-            write_if_changed(lock_path, json.dumps(new_lock, ensure_ascii=False, indent=2) + '\n')
-            write_if_changed(root / 'README.md', new_readme)
-            check(root)
-        except Exception:
-            for destination in installed:
-                shutil.rmtree(destination)
-            for backup, destination in moved:
-                backup.rename(destination)
-            if old_lock_bytes is None:
-                lock_path.unlink(missing_ok=True)
-            else:
-                lock_path.write_bytes(old_lock_bytes)
-            (root / 'README.md').write_text(readme, encoding='utf-8')
-            raise
-    return report(updates)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('command', choices=('update', 'check', 'render'))
+    parser.add_argument('--history', action='store_true', help='Verify locked upstream commits and Git trees offline')
     parser.add_argument('--root', type=Path, default=ROOT)
     parser.add_argument('--report', type=Path, help='Write an update PR body outside the tracked source files')
     args = parser.parse_args()
+    if args.history and args.command != 'check':
+        parser.error('--history requires check')
     root = args.root.resolve()
     try:
         if args.command == 'update':
@@ -341,10 +371,10 @@ def main():
             write_if_changed(root / 'README.md', render_readme(text, sources, lock))
             print('README external table rendered.')
         else:
-            lock = check(root)
+            lock = check(root, history=args.history)
             counts = Counter({name: len(entry['files']) for name, entry in lock['sources'].items()})
             print(f'PASS {len(counts)} snapshots, {sum(counts.values())} files: hashes, modes, required files and README table')
-    except (ValueError, OSError, KeyError, TypeError, tarfile.TarError, yaml.YAMLError) as error:
+    except (ValueError, OSError, KeyError, TypeError, yaml.YAMLError) as error:
         print(f'FAIL {error}', file=sys.stderr)
         return 1
     return 0
