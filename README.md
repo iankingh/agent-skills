@@ -30,6 +30,9 @@ externals.lock.json          # 已同步版本、檔案雜湊與權限
 
 | Skill | 用途 | 來源 |
 | --- | --- | --- |
+| [obsidian-note-refiner](skills/obsidian-note-refiner/SKILL.md) | 依筆記類型整理指定 Obsidian Vault 的既有筆記，判斷輕修、重整或跳過，維持屬性規格、來源及雙向連結。 | 自製，共用版本 |
+| [obsidian-literature-note-refiner](skills/obsidian-literature-note-refiner/SKILL.md) | 整理既有 Obsidian 文獻筆記的摘要、來源、作者、屬性、Markdown 與關聯導航；不處理新素材建頁或檔名批次分類。 | 自製，共用版本 |
+| [literature-organizer](skills/literature-organizer/SKILL.md) | 依指定 Vault 慣例整理文獻筆記檔名、匯出識別碼、主題分類及重複候選，核對原稿並修復受影響連結。 | 自製，共用版本 |
 | [tutor-setup](skills/tutor-setup/SKILL.md) | 將文件或程式碼轉成可追溯的學習筆記與練習，核對 PDF 圖表、章節索引與原文證據 | 自製，共用版本 |
 | [obsidian-literature-note-enricher](skills/obsidian-literature-note-enricher/SKILL.md) | 補讀文獻、圖表與影片來源，核對作者、日期及實際閱讀範圍，區分原作、查核與整理者補充 | 自製，共用版本 |
 | [code-review-workflow](skills/code-review-workflow/SKILL.md) | 依變更風險審查程式碼，驗證具體缺陷、去除重複意見並讓修正後複查收斂 | 自製 |
@@ -196,8 +199,8 @@ python3 -m venv .venv
 
 | 項目與同步副本 | 用途 | 收藏理由 | 試用狀態 | 同步版本 |
 | --- | --- | --- | --- | --- |
-| [ub-mode](external/ub-mode/README.md) · [上游](https://github.com/unclebob/ub-mode) | 強調 TDD、重構與品質檢查的工程紀律 Skill，結合 Crapper、Dryer、Mutator 檢視複雜度、重複與測試品質 | 將「先做對行為、再改善結構」整理成可重複使用的開發流程，適合研究如何把品質要求轉成具體檢查 | 待試用 | [57a8bdd](https://github.com/unclebob/ub-mode/commit/57a8bdd28e45ed41900ace0bafa2ff76dd9ed70f) |
-| [pstack](external/pstack/README.md) · [上游](https://github.com/cursor/plugins/tree/main/pstack) | 以 `/poteto-mode` 串接任務規劃、開發、驗證與多代理協作的工作流外掛；主要使用環境為 Cursor，另有官方 Claude Code 適配說明 | 依任務選擇工作流程，並把設計、平行探索、審查與實際驗證串在一起，適合研究完整的代理工作流 | 待試用 | [c742dd6](https://github.com/cursor/plugins/commit/c742dd61706fbacc1b95f1a20b7b988cf096ce6c) |
+| [ub-mode](external/ub-mode/README.md) · [上游](https://github.com/unclebob/ub-mode) | 強調 TDD、重構與品質檢查的工程紀律 Skill，結合 Crapper、Dryer、Mutator 檢視複雜度、重複與測試品質 | 將「先做對行為、再改善結構」整理成可重複使用的開發流程，適合研究如何把品質要求轉成具體檢查 | 待試用 | [3da62bf](https://github.com/unclebob/ub-mode/commit/3da62bf3fcfd2034de41f30d920d2739e566171f) |
+| [pstack](external/pstack/README.md) · [上游](https://github.com/cursor/plugins/tree/main/pstack) | 以 `/poteto-mode` 串接任務規劃、開發、驗證與多代理協作的工作流外掛；主要使用環境為 Cursor，另有官方 Claude Code 適配說明 | 依任務選擇工作流程，並把設計、平行探索、審查與實際驗證串在一起，適合研究完整的代理工作流 | 待試用 | [bf0c7cd](https://github.com/cursor/plugins/commit/bf0c7cd80abdbf7fe47b634978a7d1b4071f71a7) |
 
 <!-- EXTERNALS:END -->
 
