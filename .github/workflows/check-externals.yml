@@ -40,5 +40,5 @@ jobs:
       - run: 'python -m pip install --only-binary=:all: -r requirements-sync.txt'
       - run: python -B -m unittest discover -s tests -v
       - run: python -B scripts/sync_externals.py check
-      - run: git -c core.hooksPath=/dev/null -c protocol.allow=never -c protocol.https.allow=always submodule update --init --checkout
+      - run: python -B scripts/sync_externals.py checkout
       - run: python -B scripts/sync_externals.py check --checkout

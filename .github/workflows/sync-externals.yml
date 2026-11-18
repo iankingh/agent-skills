@@ -47,7 +47,7 @@ jobs:
       - name: Verify pinned submodules and generated README
         run: |
           python -B scripts/sync_externals.py check
-          git -c core.hooksPath=/dev/null -c protocol.allow=never -c protocol.https.allow=always submodule update --init --checkout
+          python -B scripts/sync_externals.py checkout
           python -B scripts/sync_externals.py check --checkout
           cat "$RUNNER_TEMP/external-update.md" >> "$GITHUB_STEP_SUMMARY"
       - name: Create or update the source update PR

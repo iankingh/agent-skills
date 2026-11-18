@@ -173,6 +173,43 @@ def unmodified(git):
     return not git.text('status', '--porcelain', '--untracked-files=no', '--ignore-submodules=none')
 
 
+def checkout(root):
+    git = Git(root)
+    sources = load_sources(git)
+    pins = read_pins(git, sources)
+    update = ('-c', 'protocol.allow=never', '-c', 'protocol.https.allow=always',
+              'submodule', 'update', '--init', '--checkout')
+    for name in pins:
+        source = sources[name]
+        path = source['module_path']
+        if source['path'] == '.':
+            git.run(*update, '--', path)
+            continue
+
+        child = Git(root / path)
+        if child.root.is_symlink() or (root / 'external').is_symlink():
+            raise ValueError(f'{name}: expected a submodule directory')
+        escaped = re.sub(r'([*?\[\]])', r'\\\1', source['path'])
+        patterns = f'/{escaped}/\n'.encode()
+        if (child.root / '.git').exists():
+            if child.text('status', '--porcelain', '--untracked-files=all', '--ignored=matching'):
+                raise ValueError(f'{name}: preserve local changes before changing the checkout scope')
+            child.run('sparse-checkout', 'set', '--no-cone', '--stdin', data=patterns)
+            git.run(*update, '--', path)
+            continue
+
+        # Set the pattern before Git's first checkout, including when reusing a deinitialized submodule.
+        storage = Path(git.text('rev-parse', '--path-format=absolute', '--git-path', f'modules/{name}'))
+        with tempfile.TemporaryDirectory(prefix='external-checkout-') as template:
+            pattern_file = (storage if storage.is_dir() else Path(template)) / 'info/sparse-checkout'
+            pattern_file.parent.mkdir(parents=True, exist_ok=True)
+            pattern_file.write_bytes(patterns)
+            git.run('-c', f'init.templateDir={template}', '-c', 'core.sparseCheckout=true',
+                    '-c', 'core.sparseCheckoutCone=false', *update, '--filter=blob:none', '--', path)
+        child.run('sparse-checkout', 'set', '--no-cone', '--stdin', data=patterns)
+    return pins
+
+
 def check(root, checkout=False):
     git = Git(root)
     sources = load_sources(git)
@@ -185,7 +222,7 @@ def check(root, checkout=False):
             source = sources[name]
             child = Git(root / source['module_path'])
             if not (child.root / '.git').exists():
-                raise ValueError(f'{name}: initialize with git submodule update --init')
+                raise ValueError(f'{name}: initialize with scripts/sync_externals.py checkout')
             if child.text('rev-parse', 'HEAD') != commit or not unmodified(child):
                 raise ValueError(f'{name}: checkout differs from its pinned Git commit')
             verify_required_files(child, source, commit)
@@ -247,7 +284,7 @@ def update(root):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=('update', 'check', 'render'))
+    parser.add_argument('command', choices=('update', 'checkout', 'check', 'render'))
     parser.add_argument('--checkout', action='store_true', help='Also verify local, initialized submodules')
     parser.add_argument('--root', type=Path, default=ROOT)
     parser.add_argument('--report', type=Path, help='Write a PR body outside the tracked source files')
@@ -261,6 +298,9 @@ def main():
             print(summary)
             if args.report:
                 args.report.write_text(summary, encoding='utf-8')
+        elif args.command == 'checkout':
+            pins = checkout(root)
+            print(f'Checked out {len(pins)} pinned submodules.')
         elif args.command == 'render':
             git = Git(root)
             sources = load_sources(git)

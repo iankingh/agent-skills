@@ -117,6 +117,32 @@ class SyncTests(unittest.TestCase):
         self.assertEqual((self.root / 'external/plugins/other-plugin/README.md').read_text(),
                          'another plugin in the same upstream repo')
 
+    def test_initial_checkout_only_expands_the_selected_plugin(self):
+        clone = self.directory / 'sparse-clone'
+        git(self.directory, 'clone', self.root.as_uri(), str(clone))
+        self.assertEqual(sync.checkout(clone), self.pins)
+
+        child = clone / 'external/plugins'
+        self.assertEqual({file.name for file in child.iterdir()}, {'.git', 'plugin'})
+        self.assertTrue((clone / 'external/alpha/SKILL.md').is_file())
+        self.assertEqual(git_text(child, 'sparse-checkout', 'list'), '/plugin/')
+        self.assertEqual(git_text(child, 'cat-file', '-t', 'HEAD:other-plugin'), 'tree')
+        self.assertEqual(sync.check(clone, checkout=True), self.pins)
+
+    def test_checkout_reuses_a_deinitialized_full_submodule(self):
+        path = 'external/plugins'
+        git(self.root, 'submodule', 'deinit', '--', path)
+        self.assertEqual(sync.checkout(self.root), self.pins)
+        self.assertEqual({file.name for file in (self.root / path).iterdir()}, {'.git', 'plugin'})
+        self.assertEqual(sync.check(self.root, checkout=True), self.pins)
+
+    def test_sparse_checkout_preserves_local_edits_outside_selected_plugin(self):
+        target = self.root / 'external/plugins/other-plugin/README.md'
+        target.write_text('local edit')
+        with self.assertRaisesRegex(ValueError, 'preserve local changes'):
+            sync.checkout(self.root)
+        self.assertEqual(target.read_text(), 'local edit')
+
     def test_only_submodule_pins_and_readme_change(self):
         latest_alpha = self.advance('alpha', 'SKILL.md', 'updated skill')
         latest_beta = self.advance('beta', 'plugin/README.md', 'updated readme')
@@ -273,7 +299,7 @@ class WorkflowTests(unittest.TestCase):
                            if 'scripts/sync_externals.py check --checkout' in step.get('run', ''))
         publish_index = next(i for i, step in enumerate(steps) if 'origin_git push' in step.get('run', ''))
         self.assertLess(check_index, publish_index)
-        self.assertIn('submodule update --init --checkout', steps[check_index]['run'])
+        self.assertIn('scripts/sync_externals.py checkout', steps[check_index]['run'])
         self.assertEqual(steps[publish_index]['if'],
                          "github.ref == format('refs/heads/{0}', github.event.repository.default_branch)")
         self.assertEqual(steps[publish_index]['env']['SYNC_BRANCH'], 'codex/sync-external-skills')
