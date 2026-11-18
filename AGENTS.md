@@ -1,6 +1,6 @@
 # 專案代理工作規則
 
-本專案收錄自製或改編的 Agent Skills，以及完整同步的外部專案。內容與文件以繁體中文為主；收錄與使用方式見 [README](README.md)，同步操作見 [外部同步說明](docs/external-sync.md)。
+本專案收錄自製或改編的 Agent Skills，外部專案使用 Git submodule。內容與文件以繁體中文為主；收錄與使用方式見 [README](README.md)，同步操作見 [外部同步說明](docs/external-sync.md)。
 
 ## 目錄與收錄
 
@@ -12,13 +12,13 @@
 
 ## 外部專案同步
 
-- `external/` 僅同步上游，完整保留追蹤範圍內的路徑、檔案內容與可執行權限。不要手動改寫、格式化、翻譯、重新分類或抽出其中的 Skills、Agents、文件、資源及外掛設定。
-- 用 Git fetch 取得外部來源，並以 merge commit 保留 agent-skills 原有歷史與各來源的原始提交 SHA。同步 PR 使用 **Create a merge commit** 合併，讓上游歷史進入預設分支。
-- pstack 的 `agents/` 與 `skills/` 保留在 `external/pstack/` 內，不搬到本專案根目錄。上游新增、刪除或搬移檔案時，由同步工具反映該版本的結構。
-- 同步來源與人工維護的收藏資訊由 `externals.yaml` 管理；`externals.lock.json` 與 README 的 `EXTERNALS:START`／`EXTERNALS:END` 區塊由同步工具維護，不手動修改生成內容或 lock 來繞過校驗。
-- 從乾淨的 Git 工作目錄執行 `scripts/sync_externals.py update`，建立同步提交後執行 `check --history`。只更新收藏介紹或試用狀態時使用 `render`，再執行 `check`。本機副本有手動修改或同步失敗時，依同步文件處理並保留既有內容。
+- `.gitmodules` 記錄 `external/` 下各 submodule 的上游 URL、路徑及追蹤分支。父專案以 Git gitlink 鎖定上游 commit，原始檔案及提交歷史保存在各 submodule。外部內容保留上游的結構、權限、授權與署名。
+- `external/ub-mode/` 對應 `unclebob/ub-mode`。`external/cursor-plugins/` 對應完整的 `cursor/plugins`，使用 pstack 時從其中的 `pstack/` 取得技能與代理。
+- `externals.yaml` 管理關注的上游子路徑、必要檔案及人工維護的收藏資訊。README 的 `EXTERNALS:START`／`EXTERNALS:END` 區塊由同步工具依 YAML 和 Git index 的 gitlink 產生。
+- 從乾淨的 Git 工作目錄執行 `scripts/sync_externals.py update`，更新後以 `git submodule update --init --checkout` 套用鎖定版本，再執行 `check --checkout`。只更新收藏介紹或試用狀態時使用 `render`，再執行 `check`。同步失敗時保留本機修改，依同步文件處理。
 - 外部內容的收錄與實際安裝分開處理。同步不執行上游程式、不自動安裝技能或相依工具，也不自動改變試用狀態。
-- 沿用目前的每日排程、版本鎖定與更新 PR 流程；調整收錄規範時，不連帶修改來源、lock、排程或 PR 行為。
+- 每週一台北時間 09:17 檢查上游。有新版本時，由 GitHub Actions 建立或更新同步 PR，提交 gitlink 和 README 表格的差異供審查。
+- 初次同步時，先保留 `.gitmodules` 和 `externals.yaml` 的來源設定。當 `external/` 尚無鎖定版本時，由同步工具一次建立所有 gitlink。
 
 ## 修改與驗證
 

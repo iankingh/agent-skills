@@ -1,8 +1,6 @@
 version: 1
 sources:
   - name: ub-mode
-    repository: unclebob/ub-mode
-    ref: master
     path: .
     required_files:
       - README.md
@@ -11,8 +9,6 @@ sources:
     reason: 將「先做對行為、再改善結構」整理成可重複使用的開發流程，適合研究如何把品質要求轉成具體檢查
     trial_status: 待試用
   - name: pstack
-    repository: cursor/plugins
-    ref: main
     path: pstack
     required_files:
       - README.md

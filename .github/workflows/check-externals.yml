@@ -1,10 +1,10 @@
-name: Check external snapshots
+name: Check external submodules
 
 on:
   pull_request:
     paths:
       - externals.yaml
-      - externals.lock.json
+      - .gitmodules
       - external/**
       - scripts/sync_externals.py
       - tests/**
@@ -15,7 +15,7 @@ on:
     branches: [main]
     paths:
       - externals.yaml
-      - externals.lock.json
+      - .gitmodules
       - external/**
       - scripts/sync_externals.py
       - tests/**
@@ -40,3 +40,5 @@ jobs:
       - run: 'python -m pip install --only-binary=:all: -r requirements-sync.txt'
       - run: python -B -m unittest discover -s tests -v
       - run: python -B scripts/sync_externals.py check
+      - run: git -c core.hooksPath=/dev/null -c protocol.allow=never -c protocol.https.allow=always submodule update --init --checkout
+      - run: python -B scripts/sync_externals.py check --checkout
