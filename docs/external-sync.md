@@ -46,7 +46,7 @@ git -C external/cursor-plugins log --oneline -- pstack/
 
 `update` 在暫存 Git repo 取得上游物件。所有來源驗證通過後，若有變更，會用本機作者設定在目前分支建立同步提交。有需要時可加 `--report /tmp/agent-skills-update.md` 產生 PR 摘要。抓取失敗或必要檔案遺失時，父專案與 submodule 的鎖定版本維持原樣。若 submodule 有本機修改，更新前請先保留修改。
 
-`check` 離線核對收錄設定、Git index 的 submodule 版本及 README 表格。`check --checkout` 再核對已初始化的 submodule 是否位於鎖定 commit、追蹤檔案是否乾淨，以及該 commit 是否有必要檔案。
+`check` 離線核對收錄設定、Git index 的 submodule 版本及 README 表格。`check --checkout` 再核對已初始化的 submodule 是否位於鎖定 commit、追蹤檔案是否乾淨，以及該 commit 是否有必要檔案。對指定上游子目錄的收藏，也會核對 sparse checkout 規則，確認必要檔案已出現在工作目錄，且範圍外的追蹤檔案均未展開。
 
 只更新介紹、收藏理由或試用狀態時，修改 `externals.yaml` 後執行以下指令：
 

@@ -173,6 +173,25 @@ def unmodified(git):
     return not git.text('status', '--porcelain', '--untracked-files=no', '--ignore-submodules=none')
 
 
+def sparse_pattern(path):
+    escaped = re.sub(r'([*?\[\]])', r'\\\1', path)
+    return f'/{escaped}/\n'.encode()
+
+
+def verify_sparse_checkout(child, source):
+    path = source['path']
+    if child.run('sparse-checkout', 'list') != sparse_pattern(path):
+        raise ValueError(f'{source["name"]}: expected sparse checkout of {path}/')
+    for file in source['required_files']:
+        target = child.root / path / file
+        if not target.is_file() or target.is_symlink():
+            raise ValueError(f'{source["name"]}: missing required checkout file: {path}/{file}')
+    outside = child.run('ls-files', '-z', '--', f':(top,exclude,literal){path}')
+    for file in os.fsdecode(outside).split('\0')[:-1]:
+        if os.path.lexists(child.root / file):
+            raise ValueError(f'{source["name"]}: tracked path outside sparse checkout: {file}')
+
+
 def checkout(root):
     git = Git(root)
     sources = load_sources(git)
@@ -189,8 +208,7 @@ def checkout(root):
         child = Git(root / path)
         if child.root.is_symlink() or (root / 'external').is_symlink():
             raise ValueError(f'{name}: expected a submodule directory')
-        escaped = re.sub(r'([*?\[\]])', r'\\\1', source['path'])
-        patterns = f'/{escaped}/\n'.encode()
+        patterns = sparse_pattern(source['path'])
         if (child.root / '.git').exists():
             if child.text('status', '--porcelain', '--untracked-files=all', '--ignored=matching'):
                 raise ValueError(f'{name}: preserve local changes before changing the checkout scope')
@@ -226,6 +244,8 @@ def check(root, checkout=False):
             if child.text('rev-parse', 'HEAD') != commit or not unmodified(child):
                 raise ValueError(f'{name}: checkout differs from its pinned Git commit')
             verify_required_files(child, source, commit)
+            if source['path'] != '.':
+                verify_sparse_checkout(child, source)
     return pins
 
 

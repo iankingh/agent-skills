@@ -91,6 +91,7 @@ class SyncTests(unittest.TestCase):
                 f'https://github.com/{repository}.git', path)
         self.render()
         self.base = commit(self.root, 'Add pinned external submodules')
+        git(self.root / 'external/plugins', 'sparse-checkout', 'set', '--no-cone', '/plugin/')
 
     def save_manifest(self):
         (self.root / 'externals.yaml').write_text(
@@ -114,8 +115,35 @@ class SyncTests(unittest.TestCase):
         entries = git_text(self.root, 'ls-tree', 'HEAD:external').splitlines()
         self.assertEqual(len(entries), 2)
         self.assertTrue(all(entry.startswith('160000 commit ') for entry in entries))
-        self.assertEqual((self.root / 'external/plugins/other-plugin/README.md').read_text(),
-                         'another plugin in the same upstream repo')
+        self.assertFalse((self.root / 'external/plugins/other-plugin/README.md').exists())
+
+    def test_check_rejects_full_or_wrong_sparse_checkout_at_pinned_commit(self):
+        child = self.root / 'external/plugins'
+        for args in [('disable',), ('set', '--no-cone', '/other-plugin/')]:
+            with self.subTest(args=args):
+                git(child, 'sparse-checkout', *args)
+                self.assertEqual(git_text(child, 'rev-parse', 'HEAD'), self.pins['beta'])
+                self.assertEqual(sync.check(self.root), self.pins)
+                with self.assertRaisesRegex(ValueError, 'sparse'):
+                    sync.check(self.root, checkout=True)
+
+    def test_check_requires_materialized_files_in_selected_plugin(self):
+        child = self.root / 'external/plugins'
+        target = 'plugin/README.md'
+        git(child, 'update-index', '--skip-worktree', target)
+        (child / target).unlink()
+        self.assertEqual(git_text(child, 'status', '--porcelain'), '')
+        with self.assertRaisesRegex(ValueError, 'plugin/README.md'):
+            sync.check(self.root, checkout=True)
+
+    def test_check_rejects_tracked_file_restored_outside_sparse_scope(self):
+        child = self.root / 'external/plugins'
+        target = 'other-plugin/README.md'
+        git(child, 'restore', '--ignore-skip-worktree-bits', '--', target)
+        self.assertTrue((child / target).is_file())
+        self.assertEqual(git_text(child, 'status', '--porcelain'), '')
+        with self.assertRaisesRegex(ValueError, 'other-plugin/README.md'):
+            sync.check(self.root, checkout=True)
 
     def test_initial_checkout_only_expands_the_selected_plugin(self):
         clone = self.directory / 'sparse-clone'
@@ -131,12 +159,14 @@ class SyncTests(unittest.TestCase):
 
     def test_checkout_reuses_a_deinitialized_full_submodule(self):
         path = 'external/plugins'
+        git(self.root / path, 'sparse-checkout', 'disable')
         git(self.root, 'submodule', 'deinit', '--', path)
         self.assertEqual(sync.checkout(self.root), self.pins)
         self.assertEqual({file.name for file in (self.root / path).iterdir()}, {'.git', 'plugin'})
         self.assertEqual(sync.check(self.root, checkout=True), self.pins)
 
     def test_sparse_checkout_preserves_local_edits_outside_selected_plugin(self):
+        git(self.root / 'external/plugins', 'sparse-checkout', 'disable')
         target = self.root / 'external/plugins/other-plugin/README.md'
         target.write_text('local edit')
         with self.assertRaisesRegex(ValueError, 'preserve local changes'):
@@ -156,7 +186,7 @@ class SyncTests(unittest.TestCase):
         self.assertIn(f'/compare/{self.pins["alpha"]}...{latest_alpha}', summary)
         with self.assertRaisesRegex(ValueError, 'checkout differs'):
             sync.check(self.root, checkout=True)
-        git(self.root, 'submodule', 'update', '--init', '--checkout')
+        sync.checkout(self.root)
         self.assertEqual(sync.check(self.root, checkout=True), {'alpha': latest_alpha, 'beta': latest_beta})
         self.assertIn('沒有變更', sync.update(self.root))
 
@@ -175,7 +205,7 @@ class SyncTests(unittest.TestCase):
             sync.check(clone, checkout=True)
         latest = self.advance('alpha', 'SKILL.md', 'updated skill')
         sync.update(clone)
-        git(clone, 'submodule', 'update', '--init', '--checkout')
+        sync.checkout(clone)
         self.assertEqual(sync.check(clone, checkout=True), dict(self.pins, alpha=latest))
 
     def test_empty_external_can_bootstrap_all_submodule_pins(self):
@@ -189,7 +219,7 @@ class SyncTests(unittest.TestCase):
         summary = sync.update(self.root)
         self.assertEqual(summary.count('建立'), 2)
         self.assertEqual(sync.check(self.root), self.pins)
-        git(self.root, 'submodule', 'update', '--init', '--checkout')
+        sync.checkout(self.root)
         self.assertEqual(sync.check(self.root, checkout=True), self.pins)
 
     def test_partial_submodule_set_is_rejected(self):
