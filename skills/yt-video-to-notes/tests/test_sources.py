@@ -100,6 +100,18 @@ class SourceTests(unittest.TestCase):
         self.assertEqual(sources.transcript_window(path, 5, 8), [])
         self.assertEqual(path.read_bytes(), before)
 
+    def test_subtitle_markup_preserves_technical_text(self):
+        text = "當 a < b 且 c > d 時，回傳 List<T> & 顯示 <b>"
+        for suffix, cue, markup in [
+            ("srt", "1\n00:00:00,000 --> 00:00:02,000", '<font color="red"><b>{}</b></font>'),
+            ("vtt", "WEBVTT\n\n00:00.000 --> 00:02.000", '<v 講者><00:00.500><c.color><b>{}</b></c></v>'),
+        ]:
+            with self.subTest(suffix=suffix):
+                path = self.root / f"transcript.{suffix}"
+                body = markup.format("當 a < b 且 c > d 時，回傳 List<T> &amp; 顯示 &lt;b&gt;")
+                path.write_text(f"{cue}\n{body}")
+                self.assertEqual(sources.transcript_window(path, 0, 2)[0]["text"], text)
+
     def test_vtt_cue_ids_settings_and_note_blocks(self):
         path = self.root / "transcript.vtt"
         path.write_text("WEBVTT\n\nNOTE not a cue\n00:00.000 --> 00:01.000\n忽略\n\n"

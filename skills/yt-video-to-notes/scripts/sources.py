@@ -16,6 +16,19 @@ import sys
 import wave
 
 
+SRT_MARKUP = re.compile(
+    r"</?(?:b|i|u|s|font)>|<font(?:\s+(?:color|face|size)\s*=\s*"
+    r"""(?:"[^"<>]*"|'[^'<>]*'|[^\s<>"']+))+\s*>""",
+    re.IGNORECASE,
+)
+VTT_MARKUP = re.compile(
+    r"</(?:b|i|u|c|ruby|rt|v|lang)>"
+    r"|<(?:b|i|u|c|ruby|rt)(?:\.[^\s.<>]+)*>"
+    r"|<(?:v|lang)(?:\.[^\s.<>]+)*\s+[^<>]+>"
+    r"|<(?:\d{2,}:)?[0-5]\d:[0-5]\d\.\d{3}>"
+)
+
+
 def number(value, name):
     if isinstance(value, bool):
         raise ValueError(f"{name} 必須是有限數字")
@@ -94,6 +107,7 @@ def load_segments(path):
         if not isinstance(rows, list):
             raise ValueError("逐字稿 JSON 須為區段陣列，或包含 segments 陣列")
     elif path.suffix.lower() in {".srt", ".vtt"}:
+        markup = VTT_MARKUP if path.suffix.lower() == ".vtt" else SRT_MARKUP
         rows = []
         for block in re.split(r"\r?\n[ \t]*\r?\n", text.strip()):
             lines = block.splitlines()
@@ -107,7 +121,7 @@ def load_segments(path):
                 if not match:
                     raise ValueError("字幕時間軸格式錯誤")
                 body = " ".join(lines[index + 1:])
-                body = html.unescape(re.sub(r"<[^>]*>", "", body)).strip()
+                body = html.unescape(markup.sub("", body)).strip()
                 rows.append({"start": cue_time(match[1]), "end": cue_time(match[2]), "text": body})
                 parsed = True
                 break
