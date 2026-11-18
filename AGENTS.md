@@ -18,7 +18,7 @@
 - 同步來源與人工維護的收藏資訊由 `externals.yaml` 管理；`externals.lock.json` 與 README 的 `EXTERNALS:START`／`EXTERNALS:END` 區塊由同步工具維護，不手動修改生成內容或 lock 來繞過校驗。
 - 從乾淨的 Git 工作目錄執行 `scripts/sync_externals.py update`，建立同步提交後執行 `check --history`。只更新收藏介紹或試用狀態時使用 `render`，再執行 `check`。本機副本有手動修改或同步失敗時，依同步文件處理並保留既有內容。
 - 外部內容的收錄與實際安裝分開處理。同步不執行上游程式、不自動安裝技能或相依工具，也不自動改變試用狀態。
-- 沿用目前的每週排程、版本鎖定與更新 PR 流程；調整收錄規範時，不連帶修改來源、lock、排程或 PR 行為。
+- 沿用目前的每日排程、版本鎖定與更新 PR 流程；調整收錄規範時，不連帶修改來源、lock、排程或 PR 行為。
 
 ## 修改與驗證
 

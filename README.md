@@ -206,7 +206,7 @@ python3 -m venv .venv
 
 ### 更新外部專案
 
-每週一台北時間 **09:17** 檢查上游（UTC 週一 01:17），也可以在 GitHub Actions 的 **Sync external projects** 手動執行。同步透過 Git fetch 取得來源，將 agent-skills 的原有提交和上游原始提交一併保留在 Git 歷史中。有變更時建立或更新 `codex/sync-external-skills` PR，審核後以 **Create a merge commit** 合併。pstack 的工作目錄只收錄 `cursor/plugins` 的 `pstack/`，Git 歷史保留來源提交完整的父系。
+每天台北時間 **09:17** 檢查上游（UTC 01:17），也可以在 GitHub Actions 的 **Sync external projects** 手動執行。同步透過 Git fetch 取得來源，將 agent-skills 的原有提交和上游原始提交一併保留在 Git 歷史中。有變更時建立或更新 `codex/sync-external-skills` PR，審核後以 **Create a merge commit** 合併。pstack 的工作目錄只收錄 `cursor/plugins` 的 `pstack/`，Git 歷史保留來源提交完整的父系。
 
 同步流程會先核對現有副本，準備好各來源的 Git tree 和版本鎖定資訊後才更新分支。本機副本有手動修改或 fetch 失敗時停止。上游內容只供收錄，試用狀態仍由人工維護。
 

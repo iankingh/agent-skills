@@ -372,10 +372,10 @@ class WorkflowTests(unittest.TestCase):
                             result = subprocess.run(['bash', '-n'], input=step['run'], text=True, capture_output=True)
                             self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_weekly_and_manual_triggers_and_scoped_pr_publication(self):
+    def test_daily_and_manual_triggers_and_scoped_pr_publication(self):
         path = SCRIPT.parents[1] / '.github/workflows/sync-externals.yml'
         workflow = yaml.load(path.read_text(), Loader=yaml.BaseLoader)
-        self.assertEqual(workflow['on']['schedule'][0]['cron'], '17 1 * * 1')
+        self.assertEqual(workflow['on']['schedule'][0]['cron'], '17 1 * * *')
         self.assertIn('workflow_dispatch', workflow['on'])
         self.assertEqual(workflow['permissions'], {'contents': 'write', 'pull-requests': 'write'})
         steps = workflow['jobs']['sync']['steps']

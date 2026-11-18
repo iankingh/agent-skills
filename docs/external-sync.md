@@ -23,10 +23,10 @@
 
 同步保留上游檔案原始位元組及可執行標記，包含二進位圖片與隱藏設定；不重新摘要、翻譯或格式化。保留來源提供的授權資訊；未提供授權檔時不替上游補上授權宣告，也不將自製內容的授權套用到外部檔案。同步來源與本機安裝分開處理，實際使用依各專案文件及授權條件確認。
 
-## 每週更新與啟用
+## 每日更新與啟用
 
 - Workflow：`.github/workflows/sync-externals.yml`，名稱 **Sync external projects**。
-- 排程：UTC 週一 01:17，即台北時間每週一 09:17；GitHub 排程可能延遲，也可按 **Run workflow** 手動執行。
+- 每天台北時間 09:17（UTC 01:17）排程執行，實際啟動時間可能延遲。也可按 **Run workflow** 手動執行。
 - Workflow 必須存在於儲存庫預設分支，才會按週觸發。手動執行也限定預設分支。
 - GitHub 儲存庫 **Settings → Actions → General → Workflow permissions** 需允許 Actions 建立 PR。Workflow 只宣告來源分支寫入與 PR 寫入所需權限，使用內建 `GITHUB_TOKEN`，不需要個人 PAT。
 - 更新完成後先執行 `check --history`，再直接把同步提交推到 `codex/sync-external-skills` 並建立或更新 PR，附上來源比較與檔案增刪改數量。首次從快照遷移時，即使檔案相同也會為缺少的 Git 歷史建立提交。後續來源版本及歷史一致時不建立新提交或 PR。

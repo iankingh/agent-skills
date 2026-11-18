@@ -2,8 +2,8 @@ name: Sync external projects
 
 on:
   schedule:
-    # Monday 09:17 Asia/Taipei (01:17 UTC).
-    - cron: '17 1 * * 1'
+    # Daily at 09:17 Asia/Taipei (01:17 UTC).
+    - cron: '17 1 * * *'
   workflow_dispatch:
 
 permissions:
