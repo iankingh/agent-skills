@@ -13,9 +13,9 @@
 ## 外部專案同步
 
 - `.gitmodules` 記錄 `external/` 下各 submodule 的上游 URL、路徑及追蹤分支。父專案以 Git gitlink 鎖定上游 commit，原始檔案及提交歷史保存在各 submodule。外部內容保留上游的結構、權限、授權與署名。
-- `external/ub-mode/` 對應 `unclebob/ub-mode`。`external/cursor-plugins/` 對應完整的 `cursor/plugins`，使用 pstack 時從其中的 `pstack/` 取得技能與代理。
+- `external/ub-mode/` 對應 `unclebob/ub-mode`。`external/cursor-plugins/` 指向 `cursor/plugins`，本機與 Action 都用 sparse checkout 只展開 `pstack/`。
 - `externals.yaml` 管理關注的上游子路徑、必要檔案及人工維護的收藏資訊。README 的 `EXTERNALS:START`／`EXTERNALS:END` 區塊由同步工具依 YAML 和 Git index 的 gitlink 產生。
-- 從乾淨的 Git 工作目錄執行 `scripts/sync_externals.py update`，更新後以 `git submodule update --init --checkout` 套用鎖定版本，再執行 `check --checkout`。只更新收藏介紹或試用狀態時使用 `render`，再執行 `check`。同步失敗時保留本機修改，依同步文件處理。
+- 從乾淨的 Git 工作目錄執行 `scripts/sync_externals.py update`，更新後以同一支腳本的 `checkout` 套用鎖定版本與 sparse checkout，再執行 `check --checkout`。只更新收藏介紹或試用狀態時使用 `render`，再執行 `check`。同步失敗時保留本機修改，依同步文件處理。
 - 外部內容的收錄與實際安裝分開處理。同步不執行上游程式、不自動安裝技能或相依工具，也不自動改變試用狀態。
 - 每週一台北時間 09:17 檢查上游。有新版本時，由 GitHub Actions 建立或更新同步 PR，提交 gitlink 和 README 表格的差異供審查。
 - 初次同步時，先保留 `.gitmodules` 和 `externals.yaml` 的來源設定。當 `external/` 尚無鎖定版本時，由同步工具一次建立所有 gitlink。

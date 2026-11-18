@@ -7,14 +7,14 @@
 | ub-mode | `external/ub-mode/` | `unclebob/ub-mode` 的 `master` | 追蹤分支最新 commit |
 | pstack | `external/cursor-plugins/` | `cursor/plugins` 的 `main` | 追蹤最近一次影響 `pstack/` 的 commit |
 
-`external/cursor-plugins/` 會 checkout 整個上游 repo。pstack 的技能、代理、資源與外掛設定都從 `external/cursor-plugins/pstack/` 使用。同步與校驗只處理 Git 資料。實際安裝則依各上游文件及授權條件操作。
+`external/cursor-plugins/` 的 submodule 指標仍連到上游 repo。本機與 Action 的 `checkout` 指令使用 sparse checkout，只展開 `external/cursor-plugins/pstack/`。同步與校驗只處理 Git 資料。實際安裝則依各上游文件及授權條件操作。
 
 ## 下載鎖定版本與查閱歷史
 
-新舊 clone 都能在專案根目錄初始化 submodule。之後拉取同步更新時，重新執行同一指令以套用父專案目前鎖定的版本。
+新舊 clone 都能在專案根目錄初始化 submodule。先準備下方的 Python 環境。之後拉取同步更新時，再執行 `checkout` 套用父專案目前鎖定的版本。
 
 ```sh
-git submodule update --init --checkout
+.venv/bin/python -B scripts/sync_externals.py checkout
 git submodule status
 git -C external/ub-mode log --oneline
 git -C external/cursor-plugins log --oneline -- pstack/
@@ -40,7 +40,7 @@ git -C external/cursor-plugins log --oneline -- pstack/
 .venv/bin/python -m pip install -r requirements-sync.txt
 .venv/bin/python -B -m unittest discover -s tests -v
 .venv/bin/python -B scripts/sync_externals.py update
-git submodule update --init --checkout
+.venv/bin/python -B scripts/sync_externals.py checkout
 .venv/bin/python -B scripts/sync_externals.py check --checkout
 ```
 

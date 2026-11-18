@@ -19,7 +19,7 @@ skills/
     └── assets/              # 選用：範本與資源
 external/
 ├── ub-mode/                 # unclebob/ub-mode submodule
-└── cursor-plugins/          # cursor/plugins submodule，pstack/ 在這裡
+└── cursor-plugins/pstack/   # cursor/plugins submodule，工作目錄只展開 pstack/
 .gitmodules                  # Submodule 來源、路徑與追蹤分支
 externals.yaml               # 關注的子目錄、必要檔案與收藏資訊
 ```
@@ -192,10 +192,12 @@ python3 -m venv .venv
 
 ## 外部收藏
 
-在 repo 根目錄下載鎖定版本。`pstack` 的檔案位於 `external/cursor-plugins/pstack/`，安裝及相依工具請依原始專案文件操作。
+在 repo 根目錄用 `checkout` 下載鎖定版本。`cursor/plugins` submodule 的工作目錄只展開 `pstack/`。安裝與相依工具請依原始專案文件操作。
 
 ```sh
-git submodule update --init --checkout
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-sync.txt
+.venv/bin/python -B scripts/sync_externals.py checkout
 ```
 
 下表由 `externals.yaml` 與 Git index 的 submodule 版本產生。中文介紹、收藏理由與試用狀態請修改 YAML，再執行 `render`。
@@ -218,7 +220,7 @@ git submodule update --init --checkout
 ```sh
 .venv/bin/python -m pip install -r requirements-sync.txt
 .venv/bin/python -B scripts/sync_externals.py update
-git submodule update --init --checkout
+.venv/bin/python -B scripts/sync_externals.py checkout
 .venv/bin/python -B scripts/sync_externals.py check --checkout
 ```
 
