@@ -6,7 +6,7 @@ A collection of AI agent skills I use, build, and discover.
 
 ## 目錄結構
 
-技能集中在 `skills/`，沿用 [OpenAI Skills](https://github.com/openai/skills) 與 [Anthropic Skills](https://github.com/anthropics/skills) 官方技能庫的收錄方式；外部專案則在 `external/` 保存上游完整結構。
+技能集中在 `skills/`，沿用 [OpenAI Skills](https://github.com/openai/skills) 與 [Anthropic Skills](https://github.com/anthropics/skills) 官方技能庫的收錄方式。外部專案以 Git submodule 放在 `external/`。
 
 ```text
 AGENTS.md                    # 專案代理工作規則
@@ -18,10 +18,10 @@ skills/
     ├── references/          # 選用：補充文件
     └── assets/              # 選用：範本與資源
 external/
-├── ub-mode/                 # 上游專案完整副本
-└── pstack/                  # 上游 pstack/ 完整副本，包含其 agents/ 與 skills/
-externals.yaml               # 同步來源與人工維護的收藏資訊
-externals.lock.json          # 已同步版本、檔案雜湊與權限
+├── ub-mode/                 # unclebob/ub-mode submodule
+└── cursor-plugins/          # cursor/plugins submodule，pstack/ 在這裡
+.gitmodules                  # Submodule 來源、路徑與追蹤分支
+externals.yaml               # 關注的子目錄、必要檔案與收藏資訊
 ```
 
 目前自製內容都是技能。未來收錄自製的獨立子代理時，本專案使用根目錄 `agents/<工具名稱>/` 保存定義，有實際內容才建立資料夾。這裡的 `skills/` 與未來的 `agents/` 是內容庫的收錄位置，實際安裝與載入位置依目標工具文件操作。維護本專案時，遵循 [AGENTS.md](AGENTS.md) 的作業規則。
@@ -186,36 +186,39 @@ python3 -m venv .venv
 - **自製或改編技能**：放在 `skills/<skill-name>/`，保存完整技能資料夾。README 記錄用途與來源；改編版本另註明原始連結、版本或 commit，以及修改內容，並保留適用的原作者授權與署名。
 - **技能附屬設定**：`skills/<skill-name>/agents/openai.yaml` 依 [OpenAI 文件](https://learn.chatgpt.com/docs/build-skills) 隨技能保留，設定顯示資訊、呼叫政策、預設提示詞與工具相依；它不是獨立子代理定義，安裝技能時一併保留。
 - **自製獨立子代理**：未來放在根目錄 `agents/<工具名稱>/`，依工具格式保存，並在 README 記錄用途、適用工具及安裝位置。不同工具各自維護定義，例如 [Claude Code](https://code.claude.com/docs/en/sub-agents) 的 `.claude/agents/` 與 [Cursor](https://cursor.com/docs/subagents) 的 `.cursor/agents/`；不預設同一份定義可跨工具通用，也不預先建立空資料夾。
-- **外部收藏**：以 `externals.yaml` 記錄來源、追蹤範圍、用途、收藏理由與試用狀態，原始檔案同步至 `external/<name>/`；`externals.lock.json` 保存 commit、檔案 SHA-256 與可執行權限，保留上游提供的授權與署名。`external/` 僅同步上游，完整保留原有路徑與結構，不將其中的技能、代理或其他元件抽出、搬移或重新分類。
+- **外部收藏**：以 `.gitmodules` 記錄來源，透過 Git 鎖定各 submodule 的上游 commit。`externals.yaml` 記錄關注的子目錄、必要檔案、用途、收藏理由與試用狀態。各 submodule 保留上游原有的路徑、檔案、授權與署名。
 - **來源標示**：區分自製、改編與外部收藏；未實際試用的項目標示「待試用」，不宣稱已驗證。
 
 ## 外部收藏
 
-外部專案的原始檔案保存在 `external/`，包含技能、代理、圖片、文件及上游提供的授權檔；這些副本尚未安裝到個人技能目錄，安裝與相依工具請依原始專案文件操作。
+在 repo 根目錄下載鎖定版本。`pstack` 的檔案位於 `external/cursor-plugins/pstack/`，安裝及相依工具請依原始專案文件操作。
 
-下表由 `externals.yaml` 與 lock 檔產生；中文介紹、收藏理由與試用狀態請修改 YAML，再執行 `render`。
+```sh
+git submodule update --init --checkout
+```
+
+下表由 `externals.yaml` 與 Git index 的 submodule 版本產生。中文介紹、收藏理由與試用狀態請修改 YAML，再執行 `render`。
 
 <!-- EXTERNALS:START -->
 
-| 項目與同步副本 | 用途 | 收藏理由 | 試用狀態 | 同步版本 |
+| 項目 | 用途 | 收藏理由 | 試用狀態 | 鎖定版本 |
 | --- | --- | --- | --- | --- |
-| [ub-mode](external/ub-mode/README.md) · [上游](https://github.com/unclebob/ub-mode) | 強調 TDD、重構與品質檢查的工程紀律 Skill，結合 Crapper、Dryer、Mutator 檢視複雜度、重複與測試品質 | 將「先做對行為、再改善結構」整理成可重複使用的開發流程，適合研究如何把品質要求轉成具體檢查 | 待試用 | [3da62bf](https://github.com/unclebob/ub-mode/commit/3da62bf3fcfd2034de41f30d920d2739e566171f) |
-| [pstack](external/pstack/README.md) · [上游](https://github.com/cursor/plugins/tree/main/pstack) | 以 `/poteto-mode` 串接任務規劃、開發、驗證與多代理協作的工作流外掛；主要使用環境為 Cursor，另有官方 Claude Code 適配說明 | 依任務選擇工作流程，並把設計、平行探索、審查與實際驗證串在一起，適合研究完整的代理工作流 | 待試用 | [2f87c85](https://github.com/cursor/plugins/commit/2f87c854fe3e2fcda44ca86b46ede35aad3c46b7) |
+| [ub-mode](https://github.com/unclebob/ub-mode/tree/master) | 強調 TDD、重構與品質檢查的工程紀律 Skill，結合 Crapper、Dryer、Mutator 檢視複雜度、重複與測試品質 | 將「先做對行為、再改善結構」整理成可重複使用的開發流程，適合研究如何把品質要求轉成具體檢查 | 待試用 | 待同步 |
+| [pstack](https://github.com/cursor/plugins/tree/main/pstack) | 以 `/poteto-mode` 串接任務規劃、開發、驗證與多代理協作的工作流外掛；主要使用環境為 Cursor，另有官方 Claude Code 適配說明 | 依任務選擇工作流程，並把設計、平行探索、審查與實際驗證串在一起，適合研究完整的代理工作流 | 待試用 | 待同步 |
 
 <!-- EXTERNALS:END -->
 
 ### 更新外部專案
 
-每天台北時間 **09:17** 檢查上游（UTC 01:17），也可以在 GitHub Actions 的 **Sync external projects** 手動執行。同步透過 Git fetch 取得來源，將 agent-skills 的原有提交和上游原始提交一併保留在 Git 歷史中。有變更時建立或更新 `codex/sync-external-skills` PR，審核後以 **Create a merge commit** 合併。pstack 的工作目錄只收錄 `cursor/plugins` 的 `pstack/`，Git 歷史保留來源提交完整的父系。
+每週一台北時間 **09:17** 檢查上游（UTC 01:17），也可以在 GitHub Actions 的 **Sync external projects** 手動執行。有新版本時會建立或更新 `codex/sync-external-skills` PR，提交 submodule 的鎖定版本與 README 表格供審查。pstack 只有在上游 `pstack/` 路徑有新提交時才更新鎖定版本。
 
-同步流程會先核對現有副本，準備好各來源的 Git tree 和版本鎖定資訊後才更新分支。本機副本有手動修改或 fetch 失敗時停止。上游內容只供收錄，試用狀態仍由人工維護。
-
-本機操作需 Git、完整的 clone 與 Python 3.10 以上。從乾淨的 Git 工作目錄執行，`update` 有變更時會建立同步提交：
+本機操作需 Git 與 Python 3.10 以上。從乾淨的 Git 工作目錄執行，`update` 有變更時會建立同步提交：
 
 ```sh
 .venv/bin/python -m pip install -r requirements-sync.txt
 .venv/bin/python -B scripts/sync_externals.py update
-.venv/bin/python -B scripts/sync_externals.py check --history
+git submodule update --init --checkout
+.venv/bin/python -B scripts/sync_externals.py check --checkout
 ```
 
 只修改中文介紹與試用狀態時，離線更新表格：

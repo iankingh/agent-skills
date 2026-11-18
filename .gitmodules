@@ -1,0 +1,8 @@
+[submodule "ub-mode"]
+	path = external/ub-mode
+	url = https://github.com/unclebob/ub-mode.git
+	branch = master
+[submodule "pstack"]
+	path = external/cursor-plugins
+	url = https://github.com/cursor/plugins.git
+	branch = main
