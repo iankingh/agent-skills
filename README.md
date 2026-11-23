@@ -207,7 +207,7 @@ python3 -m venv .venv
 | 項目 | 用途 | 收藏理由 | 試用狀態 | 鎖定版本 |
 | --- | --- | --- | --- | --- |
 | [ub-mode](https://github.com/unclebob/ub-mode/tree/3da62bf3fcfd2034de41f30d920d2739e566171f) | 強調 TDD、重構與品質檢查的工程紀律 Skill，結合 Crapper、Dryer、Mutator 檢視複雜度、重複與測試品質 | 將「先做對行為、再改善結構」整理成可重複使用的開發流程，適合研究如何把品質要求轉成具體檢查 | 待試用 | [3da62bf](https://github.com/unclebob/ub-mode/commit/3da62bf3fcfd2034de41f30d920d2739e566171f) |
-| [pstack](https://github.com/cursor/plugins/tree/2f87c854fe3e2fcda44ca86b46ede35aad3c46b7/pstack) | 以 `/poteto-mode` 串接任務規劃、開發、驗證與多代理協作的工作流外掛；主要使用環境為 Cursor，另有官方 Claude Code 適配說明 | 依任務選擇工作流程，並把設計、平行探索、審查與實際驗證串在一起，適合研究完整的代理工作流 | 待試用 | [2f87c85](https://github.com/cursor/plugins/commit/2f87c854fe3e2fcda44ca86b46ede35aad3c46b7) |
+| [pstack](https://github.com/cursor/plugins/tree/0b46ec399d55f2829e88822998f53b84944837d3/pstack) | 以 `/poteto-mode` 串接任務規劃、開發、驗證與多代理協作的工作流外掛；主要使用環境為 Cursor，另有官方 Claude Code 適配說明 | 依任務選擇工作流程，並把設計、平行探索、審查與實際驗證串在一起，適合研究完整的代理工作流 | 待試用 | [0b46ec3](https://github.com/cursor/plugins/commit/0b46ec399d55f2829e88822998f53b84944837d3) |
 
 <!-- EXTERNALS:END -->
 
