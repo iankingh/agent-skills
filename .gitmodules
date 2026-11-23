@@ -6,3 +6,27 @@
 	path = external/cursor-plugins
 	url = https://github.com/cursor/plugins.git
 	branch = main
+[submodule "frontend-design"]
+	path = external/frontend-design
+	url = https://github.com/anthropics/skills.git
+	branch = main
+[submodule "ui-ux-pro-max"]
+	path = external/ui-ux-pro-max
+	url = https://github.com/nextlevelbuilder/ui-ux-pro-max-skill.git
+	branch = main
+[submodule "pre-review-checklist"]
+	path = external/pre-review-checklist
+	url = https://github.com/talisik-ai/claude-skills.git
+	branch = main
+[submodule "frontend-spec"]
+	path = external/frontend-spec
+	url = https://github.com/talisik-ai/claude-skills.git
+	branch = main
+[submodule "test-generator"]
+	path = external/test-generator
+	url = https://github.com/TerminalSkills/skills.git
+	branch = main
+[submodule "mattpocock-skills"]
+	path = external/mattpocock-skills
+	url = https://github.com/mattpocock/skills.git
+	branch = main

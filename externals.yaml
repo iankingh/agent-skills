@@ -19,3 +19,50 @@ sources:
     description: 以 `/poteto-mode` 串接任務規劃、開發、驗證與多代理協作的工作流外掛；主要使用環境為 Cursor，另有官方 Claude Code 適配說明
     reason: 依任務選擇工作流程，並把設計、平行探索、審查與實際驗證串在一起，適合研究完整的代理工作流
     trial_status: 待試用
+  - name: frontend-design
+    path: skills/frontend-design
+    required_files:
+      - SKILL.md
+      - LICENSE.txt
+    description: Anthropic 的前端設計技能，從使用情境選定視覺方向，再落實於字體、配色、動效與版面
+    reason: 適合參考設計簡報如何轉成具體的介面選擇
+    trial_status: 待試用
+  - name: ui-ux-pro-max
+    path: .
+    required_files:
+      - README.md
+      - LICENSE
+      - src/ui-ux-pro-max/scripts/search.py
+    description: 依產品類型與技術棧搜尋設計風格、配色、字體搭配及 UX 指引，產生設計系統
+    reason: 可查閱設計建議背後的資料、搜尋程式與平台範本，研究同一套規範如何套用到不同介面
+    trial_status: 待試用
+  - name: pre-review-checklist
+    path: packages/skills/pre-review-checklist
+    required_files:
+      - SKILL.md
+    description: Talisik 的 PR 送審前檢查清單，逐項檢查變更並列出需要修正的問題
+    reason: 可作為交給 QA 或技術負責人前的自查範本
+    trial_status: 待試用
+  - name: frontend-spec
+    path: packages/skills/frontend-spec
+    required_files:
+      - SKILL.md
+    description: Talisik 的前端元件規格技能，將需求整理成 TypeScript 介面與使用範例
+    reason: 方便在實作前核對元件的輸入、使用方式與預期行為
+    trial_status: 待試用
+  - name: test-generator
+    path: skills/test-generator
+    required_files:
+      - SKILL.md
+    description: 依既有程式產生測試，支援 Jest 與 Vitest，涵蓋邊界案例、斷言與相依模擬
+    reason: 作為 CodeLove 文中 Test Gen 範例的替代技能，有可追蹤的 Git 上游
+    trial_status: 待試用
+  - name: mattpocock-skills
+    path: .
+    required_files:
+      - README.md
+      - LICENSE
+      - skills/engineering/tdd/SKILL.md
+    description: Matt Pocock 的工程技能集，涵蓋需求釐清、測試驅動開發與程式架構改善
+    reason: 可參考如何用提問釐清設計決策，再把需求拆成可逐步測試與實作的工作
+    trial_status: 待試用

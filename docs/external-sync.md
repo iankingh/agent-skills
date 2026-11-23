@@ -6,8 +6,14 @@
 | --- | --- | --- | --- |
 | ub-mode | `external/ub-mode/` | `unclebob/ub-mode` 的 `master` | 追蹤分支最新 commit |
 | pstack | `external/cursor-plugins/` | `cursor/plugins` 的 `main` | 追蹤最近一次影響 `pstack/` 的 commit |
+| frontend-design | `external/frontend-design/` | `anthropics/skills` 的 `main` | 追蹤 `skills/frontend-design/` |
+| ui-ux-pro-max | `external/ui-ux-pro-max/` | `nextlevelbuilder/ui-ux-pro-max-skill` 的 `main` | 追蹤分支最新 commit |
+| pre-review-checklist | `external/pre-review-checklist/` | `talisik-ai/claude-skills` 的 `main` | 追蹤 `packages/skills/pre-review-checklist/` |
+| frontend-spec | `external/frontend-spec/` | `talisik-ai/claude-skills` 的 `main` | 追蹤 `packages/skills/frontend-spec/` |
+| test-generator | `external/test-generator/` | `TerminalSkills/skills` 的 `main` | 追蹤 `skills/test-generator/` |
+| mattpocock-skills | `external/mattpocock-skills/` | `mattpocock/skills` 的 `main` | 追蹤分支最新 commit |
 
-`external/cursor-plugins/` 的 submodule 指標仍連到上游 repo。本機與 Action 的 `checkout` 指令使用 sparse checkout，只展開 `external/cursor-plugins/pstack/`。同步與校驗只處理 Git 資料。實際安裝則依各上游文件及授權條件操作。
+追蹤子目錄時，gitlink 鎖定最近一次影響該路徑的上游 commit。本機與 Action 的 `checkout` 指令使用 sparse checkout，只在各 submodule 內展開表列子目錄。Talisik 的兩款技能各有獨立 gitlink，可分別更新。同步與校驗只處理 Git 資料。實際安裝則依各上游文件及授權條件操作。
 
 ## 下載鎖定版本與查閱歷史
 
@@ -26,8 +32,8 @@ git -C external/cursor-plugins log --oneline -- pstack/
 
 - **Sync external projects** 每週一台北時間 09:17（UTC 01:17）從預設分支執行。也可在 GitHub Actions 選擇預設分支後按 **Run workflow**。
 - 在審查分支手動執行時，Action 會在執行環境中更新並校驗 submodule 指標，並把結果列在執行摘要。同步 PR 由預設分支上的執行建立。
-- Workflow 取得各上游分支，在驗證候選 commit 的必要檔案後更新 gitlink 和 README。只有 `pstack/` 的上游提交會推進 pstack 的版本。
-- 初次同步前，`external/` 可以是空的，README 表格會顯示「待同步」。首次執行會在同一份同步 PR 建立兩個 gitlink。合併後即可依上面的指令初始化本機。
+- Workflow 取得各上游分支，在驗證候選 commit 的必要檔案後更新 gitlink 和 README。
+- 初次同步前，`external/` 可以是空的，README 表格會顯示「待同步」。首次執行會在同一份同步 PR 建立所有已設定來源的 gitlink。合併後即可依上面的指令初始化本機。
 - 有變更時，workflow 驗證 submodule 可 checkout 至鎖定的 commit，然後建立或更新 `codex/sync-external-skills` PR。PR 內附上舊版與新版的上游比較連結。
 - GitHub 儲存庫 **Settings → Actions → General → Workflow permissions** 需允許 Actions 建立 PR。Workflow 使用內建 `GITHUB_TOKEN`。
 - 一般 PR 與推送至 main 時，**Check external submodules** 會執行測試，確認收錄設定、gitlink、必要檔案及 README 表格一致。

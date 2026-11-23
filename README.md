@@ -19,7 +19,13 @@ skills/
     └── assets/              # 選用：範本與資源
 external/
 ├── ub-mode/                 # unclebob/ub-mode submodule
-└── cursor-plugins/pstack/   # cursor/plugins submodule，工作目錄只展開 pstack/
+├── cursor-plugins/pstack/   # cursor/plugins 的 pstack 外掛
+├── frontend-design/        # Anthropic 的前端設計技能
+├── ui-ux-pro-max/          # 完整的 UI UX Pro Max 上游專案
+├── pre-review-checklist/   # Talisik 的 PR 送審前檢查清單
+├── frontend-spec/          # Talisik 的元件規格技能
+├── test-generator/         # TerminalSkills 的測試產生技能
+└── mattpocock-skills/      # Matt Pocock 的工程技能集
 .gitmodules                  # Submodule 來源、路徑與追蹤分支
 externals.yaml               # 關注的子目錄、必要檔案與收藏資訊
 ```
@@ -192,7 +198,7 @@ python3 -m venv .venv
 
 ## 外部收藏
 
-在 repo 根目錄用 `checkout` 下載鎖定版本。`cursor/plugins` submodule 的工作目錄只展開 `pstack/`。安裝與相依工具請依原始專案文件操作。
+在 repo 根目錄用 `checkout` 下載鎖定版本。整個專案的收藏會完整展開，指定子目錄的收藏只展開對應的技能或外掛。各項路徑見[外部同步說明](docs/external-sync.md)。安裝與相依工具請依原始專案文件操作。
 
 ```sh
 python3 -m venv .venv
@@ -208,12 +214,23 @@ python3 -m venv .venv
 | --- | --- | --- | --- | --- |
 | [ub-mode](https://github.com/unclebob/ub-mode/tree/3da62bf3fcfd2034de41f30d920d2739e566171f) | 強調 TDD、重構與品質檢查的工程紀律 Skill，結合 Crapper、Dryer、Mutator 檢視複雜度、重複與測試品質 | 將「先做對行為、再改善結構」整理成可重複使用的開發流程，適合研究如何把品質要求轉成具體檢查 | 待試用 | [3da62bf](https://github.com/unclebob/ub-mode/commit/3da62bf3fcfd2034de41f30d920d2739e566171f) |
 | [pstack](https://github.com/cursor/plugins/tree/0b46ec399d55f2829e88822998f53b84944837d3/pstack) | 以 `/poteto-mode` 串接任務規劃、開發、驗證與多代理協作的工作流外掛；主要使用環境為 Cursor，另有官方 Claude Code 適配說明 | 依任務選擇工作流程，並把設計、平行探索、審查與實際驗證串在一起，適合研究完整的代理工作流 | 待試用 | [0b46ec3](https://github.com/cursor/plugins/commit/0b46ec399d55f2829e88822998f53b84944837d3) |
+| [frontend-design](https://github.com/anthropics/skills/tree/41bbe19d1a1a7eaab5e7bb9050a417e5c6cffc8f/skills/frontend-design) | Anthropic 的前端設計技能，從使用情境選定視覺方向，再落實於字體、配色、動效與版面 | 適合參考設計簡報如何轉成具體的介面選擇 | 待試用 | [41bbe19](https://github.com/anthropics/skills/commit/41bbe19d1a1a7eaab5e7bb9050a417e5c6cffc8f) |
+| [ui-ux-pro-max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/tree/2de1134dc4d1cfe112934611ae5803ae17a1bd7e) | 依產品類型與技術棧搜尋設計風格、配色、字體搭配及 UX 指引，產生設計系統 | 可查閱設計建議背後的資料、搜尋程式與平台範本，研究同一套規範如何套用到不同介面 | 待試用 | [2de1134](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/commit/2de1134dc4d1cfe112934611ae5803ae17a1bd7e) |
+| [pre-review-checklist](https://github.com/talisik-ai/claude-skills/tree/88af058145c54f7d863d106d4f736426a64e3061/packages/skills/pre-review-checklist) | Talisik 的 PR 送審前檢查清單，逐項檢查變更並列出需要修正的問題 | 可作為交給 QA 或技術負責人前的自查範本 | 待試用 | [88af058](https://github.com/talisik-ai/claude-skills/commit/88af058145c54f7d863d106d4f736426a64e3061) |
+| [frontend-spec](https://github.com/talisik-ai/claude-skills/tree/60e3d38c30fccbf2d0e88c095b0fdbd91eb439b5/packages/skills/frontend-spec) | Talisik 的前端元件規格技能，將需求整理成 TypeScript 介面與使用範例 | 方便在實作前核對元件的輸入、使用方式與預期行為 | 待試用 | [60e3d38](https://github.com/talisik-ai/claude-skills/commit/60e3d38c30fccbf2d0e88c095b0fdbd91eb439b5) |
+| [test-generator](https://github.com/TerminalSkills/skills/tree/33b765f0904561257112a98d21df5383a6e77113/skills/test-generator) | 依既有程式產生測試，支援 Jest 與 Vitest，涵蓋邊界案例、斷言與相依模擬 | 作為 CodeLove 文中 Test Gen 範例的替代技能，有可追蹤的 Git 上游 | 待試用 | [33b765f](https://github.com/TerminalSkills/skills/commit/33b765f0904561257112a98d21df5383a6e77113) |
+| [mattpocock-skills](https://github.com/mattpocock/skills/tree/abeeaf95660ba9e8b7c753eb38f441ca707a8823) | Matt Pocock 的工程技能集，涵蓋需求釐清、測試驅動開發與程式架構改善 | 可參考如何用提問釐清設計決策，再把需求拆成可逐步測試與實作的工作 | 待試用 | [abeeaf9](https://github.com/mattpocock/skills/commit/abeeaf95660ba9e8b7c753eb38f441ca707a8823) |
 
 <!-- EXTERNALS:END -->
 
+### 延伸閱讀
+
+- [CodeLove〈前端開發必裝 Skill 清單〉](https://codelove.tw/@tony/post/qEk7M3) 涵蓋前端設計、設計系統、程式碼審查、元件規格與測試產生。文中的 Code Review 對應安裝名稱 `pre-review-checklist`。Test Gen 是文章範例，本收藏選用 TerminalSkills 的 `test-generator` 作為替代。
+- [Tony.Wu〈UI UX Pro Max 實戰〉](https://www.itnotetk.com/2026/04/20/ui-ux-pro-max-實戰：讓-claude-告別醜-ui，內建百種樣式與設計規範/) 介紹如何在 Claude 的前端開發流程中運用設計風格與規範。
+
 ### 更新外部專案
 
-每週一台北時間 **09:17** 檢查上游（UTC 01:17），也可以在 GitHub Actions 的 **Sync external projects** 手動執行。有新版本時會建立或更新 `codex/sync-external-skills` PR，提交 submodule 的鎖定版本與 README 表格供審查。pstack 只有在上游 `pstack/` 路徑有新提交時才更新鎖定版本。
+每週一台北時間 **09:17** 檢查上游（UTC 01:17），也可以在 GitHub Actions 的 **Sync external projects** 手動執行。有新版本時會建立或更新 `codex/sync-external-skills` PR，提交 submodule 的鎖定版本與 README 表格供審查。子目錄收藏只在上游提交影響該路徑時更新。
 
 本機操作需 Git 與 Python 3.10 以上。從乾淨的 Git 工作目錄執行，`update` 有變更時會建立同步提交：
 
