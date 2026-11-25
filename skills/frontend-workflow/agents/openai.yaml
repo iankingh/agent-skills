@@ -1,0 +1,4 @@
+interface:
+  display_name: "前端開發工作流"
+  short_description: "依前端任務選用畫面設計、視覺規則、元件規格、互動測試與程式碼審查"
+  default_prompt: "使用 $frontend-workflow 為訂單表格整理排序互動的元件規格與驗收條件。"

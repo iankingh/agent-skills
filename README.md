@@ -51,6 +51,14 @@ externals.yaml               # 關注的子目錄、必要檔案與收藏資訊
 | [yt-video-to-notes](skills/yt-video-to-notes/SKILL.md) | 將 YouTube 影片或播放清單轉成資料夾中的繁中 Markdown，單支一篇、清單建立總覽與章節；提供音訊長度核對、逐字稿分段、時間戳、繁中檢查與續作工具 | 自製，共用版本 |
 | [obsidian-zettelkasten](skills/obsidian-zettelkasten/SKILL.md) | 整理文獻、永久筆記與 MOC，管理屬性及雙向連結；整套課程先沿用目的地課程結構分流 | 自製，共用版本 |
 
+### 前端開發技能
+
+[frontend-workflow](skills/frontend-workflow/SKILL.md) 將 CodeLove 文章的五個主題整理成一個可獨立使用的繁中技能。設計頁面時可選擇視覺方向與設計系統，開發元件時可選擇規格、互動測試或送審前檢查。[文章來源](https://codelove.tw/@tony/post/qEk7M3)
+
+```text
+使用 $frontend-workflow 幫訂單表格設計排序互動，寫出元件規格與驗收條件。
+```
+
 ## 使用方式
 
 ### 安裝至 Codex
